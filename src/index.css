@@ -1,0 +1,242 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 230 25% 7%;
+    --foreground: 210 40% 95%;
+
+    --card: 230 20% 10%;
+    --card-foreground: 210 40% 95%;
+
+    --popover: 230 20% 10%;
+    --popover-foreground: 210 40% 95%;
+
+    --primary: 210 100% 56%;
+    --primary-foreground: 230 25% 7%;
+
+    --secondary: 270 60% 55%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 230 15% 18%;
+    --muted-foreground: 215 20% 55%;
+
+    --accent: 185 80% 50%;
+    --accent-foreground: 230 25% 7%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 230 15% 20%;
+    --input: 230 15% 18%;
+    --ring: 210 100% 56%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 230 20% 10%;
+    --sidebar-foreground: 210 40% 95%;
+    --sidebar-primary: 210 100% 56%;
+    --sidebar-primary-foreground: 230 25% 7%;
+    --sidebar-accent: 230 15% 18%;
+    --sidebar-accent-foreground: 210 40% 95%;
+    --sidebar-border: 230 15% 20%;
+    --sidebar-ring: 210 100% 56%;
+
+    /* Custom tokens */
+    --neon-blue: 210 100% 56%;
+    --neon-purple: 270 60% 55%;
+    --neon-cyan: 185 80% 50%;
+    --glow-blue: 210 100% 56% / 0.3;
+    --glow-purple: 270 60% 55% / 0.3;
+    --glow-cyan: 185 80% 50% / 0.2;
+  }
+
+  .dark {
+    --background: 230 25% 7%;
+    --foreground: 210 40% 95%;
+    --card: 230 20% 10%;
+    --card-foreground: 210 40% 95%;
+    --popover: 230 20% 10%;
+    --popover-foreground: 210 40% 95%;
+    --primary: 210 100% 56%;
+    --primary-foreground: 230 25% 7%;
+    --secondary: 270 60% 55%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 230 15% 18%;
+    --muted-foreground: 215 20% 55%;
+    --accent: 185 80% 50%;
+    --accent-foreground: 230 25% 7%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 230 15% 20%;
+    --input: 230 15% 18%;
+    --ring: 210 100% 56%;
+    --sidebar-background: 230 20% 10%;
+    --sidebar-foreground: 210 40% 95%;
+    --sidebar-primary: 210 100% 56%;
+    --sidebar-primary-foreground: 230 25% 7%;
+    --sidebar-accent: 230 15% 18%;
+    --sidebar-accent-foreground: 210 40% 95%;
+    --sidebar-border: 230 15% 20%;
+    --sidebar-ring: 210 100% 56%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-family: 'Space Grotesk', sans-serif;
+  }
+}
+
+/* Cyber grid background */
+.cyber-grid {
+  background-image:
+    linear-gradient(hsl(210 100% 56% / 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(210 100% 56% / 0.05) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+/* Glow text */
+.text-glow-blue {
+  text-shadow: 0 0 20px hsl(210 100% 56% / 0.5), 0 0 60px hsl(210 100% 56% / 0.2);
+}
+
+.text-glow-cyan {
+  text-shadow: 0 0 20px hsl(185 80% 50% / 0.5), 0 0 60px hsl(185 80% 50% / 0.2);
+}
+
+/* Glassmorphism */
+.glass {
+  background: hsl(230 20% 10% / 0.6);
+  backdrop-filter: blur(20px);
+  border: 1px solid hsl(210 100% 56% / 0.1);
+}
+
+/* Floating animation */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+@keyframes data-stream {
+  0% { transform: translateY(-100%); opacity: 0; }
+  50% { opacity: 1; }
+  100% { transform: translateY(100vh); opacity: 0; }
+}
+
+@keyframes scan-line {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+  animation: float 6s ease-in-out infinite 2s;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+/* Glassmorphism hover card */
+.glass-hover {
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.glass-hover:hover {
+  backdrop-filter: blur(30px);
+  border-color: hsl(210 100% 56% / 0.35);
+  box-shadow: 0 0 20px hsl(210 100% 56% / 0.15), 0 8px 32px hsl(230 25% 7% / 0.4);
+  transform: translateY(-2px);
+}
+
+/* Ripple effect */
+.ripple-container {
+  position: relative;
+  overflow: hidden;
+}
+.ripple-effect {
+  position: absolute;
+  border-radius: 50%;
+  background: hsl(210 100% 56% / 0.25);
+  width: 0;
+  height: 0;
+  transform: translate(-50%, -50%);
+  animation: ripple-expand 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  pointer-events: none;
+}
+@keyframes ripple-expand {
+  0% { width: 0; height: 0; opacity: 0.5; }
+  100% { width: 300px; height: 300px; opacity: 0; }
+}
+
+/* Floating data particles */
+@keyframes float-particle {
+  0% { transform: translateY(0) translateX(0); opacity: 0.2; }
+  25% { opacity: 0.6; }
+  50% { transform: translateY(-30px) translateX(15px); opacity: 0.3; }
+  75% { opacity: 0.5; }
+  100% { transform: translateY(0) translateX(0); opacity: 0.2; }
+}
+.animate-float-particle {
+  animation: float-particle 8s ease-in-out infinite;
+}
+
+/* Icon bounce */
+@keyframes icon-bounce {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+.icon-bounce-click:active svg {
+  animation: icon-bounce 0.3s ease-out;
+}
+
+/* Button glow on hover */
+.btn-glow:hover {
+  box-shadow: 0 0 15px hsl(210 100% 56% / 0.4), 0 0 30px hsl(210 100% 56% / 0.15);
+}
+
+/* Animated chart entrance */
+@keyframes chart-grow {
+  from { transform: scaleY(0); transform-origin: bottom; }
+  to { transform: scaleY(1); transform-origin: bottom; }
+}
+
+/* Row hover glow */
+.row-hover-glow {
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+.row-hover-glow:hover {
+  background-color: hsl(210 100% 56% / 0.04);
+  box-shadow: inset 0 0 30px hsl(210 100% 56% / 0.03);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: hsl(230 25% 7%);
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(210 100% 56% / 0.3);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(210 100% 56% / 0.5);
+}
