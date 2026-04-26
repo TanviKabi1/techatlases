@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, Zap, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import ThemeSelector from "./ThemeSelector";
 
 const navLinks = [
   { to: "/dashboard", label: "Dashboard" },
@@ -44,20 +45,27 @@ const Navbar = () => {
             </span>
           </Link>
 
+          <div className="hidden md:flex flex-1 justify-center">
+            <div className="flex items-center gap-1">
+              {links.map((link) => (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                    location.pathname === link.to
+                      ? "text-primary bg-primary/10"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+          </div>
+
           <div className="hidden md:flex items-center gap-1">
-            {links.map((link) => (
-              <Link
-                key={link.to}
-                to={link.to}
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                  location.pathname === link.to
-                    ? "text-primary bg-primary/10"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                }`}
-              >
-                {link.label}
-              </Link>
-            ))}
+            <div className="mx-2 w-[1px] h-6 bg-border/50" />
+            <ThemeSelector />
             {user ? (
               <Button size="sm" variant="ghost" onClick={handleSignOut} className="ml-2 text-muted-foreground hover:text-foreground">
                 <LogOut className="w-4 h-4 mr-1" /> Sign Out
@@ -71,12 +79,15 @@ const Navbar = () => {
             )}
           </div>
 
-          <button
-            onClick={() => setIsOpen(!isOpen)}
-            className="md:hidden p-2 text-muted-foreground hover:text-foreground"
-          >
-            {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
+          <div className="flex items-center gap-2 md:hidden">
+            <ThemeSelector />
+            <button
+              onClick={() => setIsOpen(!isOpen)}
+              className="p-2 text-muted-foreground hover:text-foreground"
+            >
+              {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+          </div>
         </div>
       </div>
 

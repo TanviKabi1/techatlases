@@ -1,12 +1,14 @@
 import { useState, useMemo } from "react";
 import {
   Sparkles, X, Loader2, Zap, Clock, Target,
-  ArrowRight, ChevronDown, ChevronUp, BookOpen, Layers, Map
+  ArrowRight, ChevronDown, ChevronUp, BookOpen, Layers, Map, Save, Check
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { api } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import SpaceBackground from "@/components/SpaceBackground";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -72,13 +74,16 @@ const Recommendations = () => {
   const [result, setResult] = useState<RecommendationResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [isSaving, setIsSaving] = useState(false);
 
   // Fetch available technologies for suggestions
   const { data: availableTech } = useQuery({
     queryKey: ["tech-names"],
     queryFn: async () => {
-      const { data } = await supabase.from("technology").select("name");
-      return (data ?? []).map((t) => t.name).sort();
+      const res = await api.get('/crud/technology?limit=500');
+      return (res.rows ?? []).map((t: any) => t.name).sort();
     },
   });
 
@@ -127,13 +132,7 @@ const Recommendations = () => {
     setExpandedIdx(null);
 
     try {
-      const { data, error } = await supabase.functions.invoke("recommend-skills", {
-        body: { currentStack, careerGoal, experienceLevel },
-      });
-
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-
+      const data = await api.post('/services/recommend-skills', { currentStack, careerGoal, experienceLevel });
       setResult(data as RecommendationResult);
       toast({ title: "Recommendations generated!", description: `${data.recommendations.length} technologies suggested.` });
     } catch (err: any) {
@@ -143,9 +142,32 @@ const Recommendations = () => {
       setIsLoading(false);
     }
   };
+  
+  const saveRoadmap = async () => {
+    if (!result || !user) return;
+    setIsSaving(true);
+    try {
+      const promises = result.recommendations.map((rec, i) => 
+        api.post('/crud/user_roadmap', {
+          userId: user.id,
+          technologyName: rec.name,
+          status: 'planned',
+          progress: 0,
+          priority: i
+        }).catch(() => null) // Ignore duplicates
+      );
+      await Promise.all(promises);
+      toast({ title: "Roadmap saved to My Hub!", description: "You can now track your progress in your dashboard." });
+    } catch (err) {
+      toast({ title: "Error saving roadmap", variant: "destructive" });
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-background cyber-grid">
+    <div className="min-h-screen relative overflow-hidden">
+      <SpaceBackground />
       <Navbar />
       <div className="pt-20 px-4 max-w-5xl mx-auto pb-12">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-2 flex items-center gap-3">
@@ -361,6 +383,18 @@ const Recommendations = () => {
 
                 <TabsContent value="roadmap">
                   <Card className="border-primary/20 bg-card/80 backdrop-blur">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+                      <CardTitle className="text-lg font-bold">Generated Path</CardTitle>
+                      <Button 
+                        size="sm" 
+                        onClick={saveRoadmap} 
+                        disabled={isSaving}
+                        className="gap-2"
+                      >
+                        {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                        Save to My Hub
+                      </Button>
+                    </CardHeader>
                     <CardContent className="p-6">
                       <LearningRoadmap recommendations={result.recommendations} />
                     </CardContent>

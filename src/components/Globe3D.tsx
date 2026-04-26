@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
 import Globe from "react-globe.gl";
 import * as THREE from "three";
+import { useTheme } from "@/contexts/ThemeContext";
 
 // Country centroids for point markers (lat, lng)
 const COUNTRY_COORDS: Record<string, { lat: number; lng: number }> = {
@@ -124,6 +125,11 @@ const Globe3D = ({ data, selectedRegion, onCountrySelect, autoRotate }: Globe3DP
   const [geoJson, setGeoJson] = useState<any>(null);
   const [hoveredCountry, setHoveredCountry] = useState<string | null>(null);
   const [dimensions, setDimensions] = useState({ width: 600, height: 500 });
+  const { theme } = useTheme();
+  const themePrimary = theme?.colors ? `hsl(${theme.colors.primary})` : "";
+  const themeSecondary = theme?.colors ? `hsl(${theme.colors.secondary})` : "";
+  const themeAccent = theme?.colors ? `hsl(${theme.colors.accent})` : "";
+  const themeBg = theme?.colors ? `hsl(${theme.colors.background})` : "";
 
   const countMap = useMemo(() => {
     const map: Record<string, number> = {};
@@ -157,7 +163,7 @@ const Globe3D = ({ data, selectedRegion, onCountrySelect, autoRotate }: Globe3DP
 
   // Configure globe on mount
   useEffect(() => {
-    if (!globeRef.current) return;
+    if (!globeRef.current || !theme || !theme.colors) return;
     const globe = globeRef.current;
 
     // Camera position
@@ -177,13 +183,23 @@ const Globe3D = ({ data, selectedRegion, onCountrySelect, autoRotate }: Globe3DP
     // Custom globe material
     const scene = globe.scene();
     if (scene) {
-      scene.background = new THREE.Color(0x050a15);
+      if (theme.isDark) {
+        scene.background = new THREE.Color(`hsl(${theme.colors.background})`);
+      } else {
+        // Brighter solar system background
+        const grad = new THREE.Color(`hsl(${theme.colors.background})`);
+        scene.background = grad;
+        
+        // Add a subtle glow/nebula effect to the scene if possible
+        // For simplicity, we just use a brighter ambient light
+      }
 
       // Atmosphere
-      const ambientLight = new THREE.AmbientLight(0x334466, 0.5);
+      const atmosphereIntensity = theme.isDark ? 0.5 : 0.8;
+      const ambientLight = new THREE.AmbientLight(`hsl(${theme.colors.primary})`, atmosphereIntensity);
       scene.add(ambientLight);
     }
-  }, [geoJson]);
+  }, [geoJson, theme]);
 
   // Auto-rotate
   useEffect(() => {
@@ -210,10 +226,10 @@ const Globe3D = ({ data, selectedRegion, onCountrySelect, autoRotate }: Globe3DP
         const coords = COUNTRY_COORDS[d.country];
         const intensity = d.count / maxCount;
         let color: string;
-        if (intensity > 0.7) color = "#3b82f6";
-        else if (intensity > 0.4) color = "#22d3ee";
-        else if (intensity > 0.15) color = "#a855f7";
-        else color = "#7c3aed";
+        if (intensity > 0.7) color = themePrimary;
+        else if (intensity > 0.4) color = themeSecondary;
+        else if (intensity > 0.15) color = themeAccent;
+        else color = `hsl(${theme.colors.mutedForeground})`;
 
         return {
           lat: coords.lat,
@@ -244,35 +260,37 @@ const Globe3D = ({ data, selectedRegion, onCountrySelect, autoRotate }: Globe3DP
         startLng: sc.lng,
         endLat: ec.lat,
         endLng: ec.lng,
-        color: ["#22d3ee", "#a855f7"] as [string, string],
+        color: [themeSecondary, themePrimary] as [string, string],
         label: arc.label,
       };
     });
-  }, [regionCountries]);
+  }, [regionCountries, themePrimary, themeSecondary]);
 
   // Polygon color based on developer count
   const getPolygonColor = useCallback(
     (feat: any) => {
+      if (!theme || !theme.colors) return "rgba(0,0,0,0)";
       const isHovered = hoveredCountry === feat?.properties?.name;
-      if (isHovered) return "rgba(34, 211, 238, 0.4)";
+      if (isHovered) return `hsla(${theme.colors.primary} / 0.4)`;
 
       // Check if in selected region
       if (regionCountries) {
         const name = feat?.properties?.name;
-        if (!regionCountries.includes(name)) return "rgba(15, 23, 42, 0.3)";
+        if (!regionCountries.includes(name)) return `hsla(${theme.colors.background} / 0.8)`;
       }
-      return "rgba(30, 41, 59, 0.6)";
+      return `hsla(${theme.colors.card} / 0.6)`;
     },
-    [hoveredCountry, regionCountries]
+    [hoveredCountry, regionCountries, theme]
   );
 
   const getPolygonStroke = useCallback(
     (feat: any) => {
+      if (!theme || !theme.colors) return "rgba(0,0,0,0)";
       const isHovered = hoveredCountry === feat?.properties?.name;
-      if (isHovered) return "#22d3ee";
-      return "#1e40af22";
+      if (isHovered) return themeSecondary;
+      return `hsla(${theme.colors.primary} / 0.1)`;
     },
-    [hoveredCountry]
+    [hoveredCountry, theme]
   );
 
   const pointLabel = useCallback(
@@ -310,11 +328,11 @@ const Globe3D = ({ data, selectedRegion, onCountrySelect, autoRotate }: Globe3DP
           ref={globeRef}
           width={dimensions.width}
           height={dimensions.height}
-          globeImageUrl="//unpkg.com/three-globe/example/img/earth-night.jpg"
+          globeImageUrl={theme.isDark ? "//unpkg.com/three-globe/example/img/earth-night.jpg" : "//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"}
           backgroundImageUrl=""
           backgroundColor="rgba(0,0,0,0)"
-          atmosphereColor="#3b82f6"
-          atmosphereAltitude={0.2}
+          atmosphereColor={themePrimary}
+          atmosphereAltitude={theme.isDark ? 0.2 : 0.3}
           // Polygons (countries)
           polygonsData={geoJson.features}
           polygonCapColor={getPolygonColor}

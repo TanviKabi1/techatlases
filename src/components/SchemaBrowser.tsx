@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -39,12 +39,8 @@ const TablePreview = ({ tableName, onClose }: { tableName: string; onClose: () =
   const { data, isLoading, error } = useQuery({
     queryKey: ["schema-preview", tableName],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from(tableName as TableName)
-        .select("*")
-        .limit(50);
-      if (error) throw error;
-      return data as Record<string, unknown>[];
+      const res = await api.get(`/crud/${tableName}?limit=50`);
+      return res.rows || [];
     },
   });
 
@@ -113,17 +109,7 @@ const SchemaBrowser = () => {
   const { data: tableCounts } = useQuery({
     queryKey: ["schema-counts"],
     queryFn: async () => {
-      const counts: Record<string, number> = {};
-      const results = await Promise.all(
-        DB_TABLES.map((t) =>
-          supabase.from(t.name).select("*", { count: "exact", head: true }).then((r) => ({
-            name: t.name,
-            count: r.count || 0,
-          }))
-        )
-      );
-      results.forEach((r) => { counts[r.name] = r.count; });
-      return counts;
+      return api.get(`/crud/schema`);
     },
   });
 

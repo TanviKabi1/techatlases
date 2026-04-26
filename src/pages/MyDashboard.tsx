@@ -1,15 +1,17 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Star, Bookmark, Map, TrendingUp, Plus, X, Sparkles,
   ArrowRight, BookOpen, Target, Zap, Trophy, Brain,
+  ClipboardList, Wrench, CheckSquare, Trash2
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import PageTransition from "@/components/PageTransition";
+import SpaceBackground from "@/components/SpaceBackground";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,14 +19,15 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
+import { Progress } from "@/components/ui/progress";
 
 const CAREER_PATHS = [
-  { id: "frontend", label: "Frontend Developer", techs: ["React", "TypeScript", "CSS", "Next.js", "Tailwind"] },
-  { id: "backend", label: "Backend Developer", techs: ["Node.js", "Python", "PostgreSQL", "Docker", "Redis"] },
-  { id: "data", label: "Data Scientist", techs: ["Python", "SQL", "TensorFlow", "Pandas", "R"] },
-  { id: "ai", label: "AI Engineer", techs: ["Python", "PyTorch", "TensorFlow", "LangChain", "MLOps"] },
-  { id: "devops", label: "DevOps Engineer", techs: ["Docker", "Kubernetes", "AWS", "Terraform", "CI/CD"] },
-  { id: "fullstack", label: "Full-Stack Developer", techs: ["React", "Node.js", "TypeScript", "PostgreSQL", "Docker"] },
+  { id: "frontend", label: "Frontend Developer", techs: ["React", "TypeScript", "CSS", "Next.js", "Tailwind", "Vite"] },
+  { id: "backend", label: "Backend Developer", techs: ["Node.js", "Python", "PostgreSQL", "Docker", "Redis", "Express"] },
+  { id: "data", label: "Data Scientist", techs: ["Python", "SQL", "TensorFlow", "Pandas", "R", "Numpy", "Scikit-Learn"] },
+  { id: "ai", label: "AI Engineer", techs: ["Python", "PyTorch", "TensorFlow", "LangChain", "MLOps", "OpenAI"] },
+  { id: "devops", label: "DevOps Engineer", techs: ["Docker", "Kubernetes", "AWS", "Terraform", "CI/CD", "GitHub Actions"] },
+  { id: "fullstack", label: "Full-Stack Developer", techs: ["React", "Node.js", "TypeScript", "PostgreSQL", "Docker", "Prisma"] },
 ];
 
 const TREND_OPTIONS = [
@@ -52,12 +55,8 @@ const MyDashboard = () => {
     queryKey: ["saved-technologies", user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const { data } = await supabase
-        .from("saved_technologies")
-        .select("*")
-        .eq("user_id", user!.id)
-        .order("saved_at", { ascending: false });
-      return data || [];
+      const res = await api.get(`/crud/saved_technologies?userId=${user!.id}&sort=created_at&order=desc`);
+      return res.rows || [];
     },
   });
 
@@ -66,12 +65,8 @@ const MyDashboard = () => {
     queryKey: ["saved-trends", user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const { data } = await supabase
-        .from("saved_trends")
-        .select("*")
-        .eq("user_id", user!.id)
-        .order("saved_at", { ascending: false });
-      return data || [];
+      const res = await api.get(`/crud/saved_trends?userId=${user!.id}&sort=created_at&order=desc`);
+      return res.rows || [];
     },
   });
 
@@ -80,20 +75,15 @@ const MyDashboard = () => {
     queryKey: ["user-roadmap", user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const { data } = await supabase
-        .from("user_roadmap")
-        .select("*")
-        .eq("user_id", user!.id)
-        .order("priority", { ascending: true });
-      return data || [];
+      const res = await api.get(`/crud/user_roadmap?userId=${user!.id}&sort=priority&order=asc`);
+      return res.rows || [];
     },
   });
 
   // Mutations
   const addTech = useMutation({
     mutationFn: async (name: string) => {
-      const { error } = await supabase.from("saved_technologies").insert({ user_id: user!.id, technology_name: name });
-      if (error) throw error;
+      await api.post(`/crud/saved_technologies`, { userId: user!.id, technologyName: name });
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["saved-technologies"] }); toast({ title: "Technology saved!" }); },
     onError: () => toast({ title: "Already saved or error", variant: "destructive" }),
@@ -101,7 +91,7 @@ const MyDashboard = () => {
 
   const removeTech = useMutation({
     mutationFn: async (id: string) => {
-      await supabase.from("saved_technologies").delete().eq("id", id);
+      await api.delete(`/crud/saved_technologies/${id}`);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["saved-technologies"] }),
   });
@@ -110,9 +100,9 @@ const MyDashboard = () => {
     mutationFn: async (trend: { name: string; category: string }) => {
       const existing = savedTrends.find((t: any) => t.trend_name === trend.name);
       if (existing) {
-        await supabase.from("saved_trends").delete().eq("id", existing.id);
+        await api.delete(`/crud/saved_trends/${existing.id}`);
       } else {
-        await supabase.from("saved_trends").insert({
+        await api.post(`/crud/saved_trends`, {
           user_id: user!.id,
           trend_name: trend.name,
           trend_category: trend.category,
@@ -124,27 +114,32 @@ const MyDashboard = () => {
 
   const addToRoadmap = useMutation({
     mutationFn: async (techName: string) => {
-      const { error } = await supabase.from("user_roadmap").insert({
+      await api.post(`/crud/user_roadmap`, {
         user_id: user!.id,
         technology_name: techName,
         priority: roadmap.length,
+        status: "planned",
       });
-      if (error) throw error;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["user-roadmap"] }); toast({ title: "Added to roadmap!" }); },
     onError: () => toast({ title: "Already in roadmap", variant: "destructive" }),
   });
 
   const updateRoadmapStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      await supabase.from("user_roadmap").update({ status }).eq("id", id);
+    mutationFn: async ({ id, status, progress }: { id: string; status: string; progress?: number }) => {
+      const data: any = { status };
+      if (progress !== undefined) data.progress = progress;
+      else if (status === "completed") data.progress = 100;
+      else if (status === "planned") data.progress = 0;
+      
+      await api.put(`/crud/user_roadmap/${id}`, data);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["user-roadmap"] }),
   });
 
   const removeFromRoadmap = useMutation({
     mutationFn: async (id: string) => {
-      await supabase.from("user_roadmap").delete().eq("id", id);
+      await api.delete(`/crud/user_roadmap/${id}`);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["user-roadmap"] }),
   });
@@ -152,11 +147,27 @@ const MyDashboard = () => {
   // Suggest next techs based on saved
   const suggestions = (() => {
     const savedNames = savedTechs.map((t: any) => t.technology_name.toLowerCase());
+    
+    // If no skills saved, suggest popular starter skills
+    if (savedNames.length === 0) {
+      return ["React", "Python", "JavaScript", "Node.js", "SQL", "Docker"];
+    }
+
     const matched = CAREER_PATHS.filter(p => p.techs.some(t => savedNames.includes(t.toLowerCase())));
     const suggested = new Set<string>();
+    
+    // Add skills from matched paths
     matched.forEach(p => p.techs.forEach(t => {
       if (!savedNames.includes(t.toLowerCase())) suggested.add(t);
     }));
+
+    // If still few suggestions, add from most popular paths
+    if (suggested.size < 4) {
+      CAREER_PATHS.slice(0, 3).forEach(p => p.techs.forEach(t => {
+        if (!savedNames.includes(t.toLowerCase())) suggested.add(t);
+      }));
+    }
+
     return Array.from(suggested).slice(0, 6);
   })();
 
@@ -171,9 +182,10 @@ const MyDashboard = () => {
 
   return (
     <PageTransition>
-      <Navbar />
-      <div className="min-h-screen bg-background pt-20 px-4 pb-12">
-        <div className="max-w-6xl mx-auto">
+      <div className="min-h-screen relative overflow-hidden">
+        <SpaceBackground />
+        <Navbar />
+        <div className="max-w-6xl mx-auto pt-20 px-4 pb-12">
           {/* Header */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
             <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-2">
@@ -279,46 +291,75 @@ const MyDashboard = () => {
                 </CardHeader>
                 <CardContent>
                   {roadmap.length > 0 ? (
-                    <div className="space-y-3">
-                      {roadmap.map((item: any, i: number) => (
-                        <motion.div
-                          key={item.id}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: i * 0.05 }}
-                          className="flex items-center gap-3 glass-hover rounded-lg p-3"
-                        >
-                          <div className={`w-3 h-3 rounded-full shrink-0 ${
-                            item.status === "completed" ? "bg-green-500" :
-                            item.status === "in_progress" ? "bg-primary" : "bg-muted-foreground/30"
-                          }`} />
-                          <span className={`text-sm font-medium flex-1 ${item.status === "completed" ? "line-through text-muted-foreground" : "text-foreground"}`}>
-                            {item.technology_name}
-                          </span>
-                          <div className="flex gap-1">
-                            {["planned", "in_progress", "completed"].map(s => (
-                              <button
-                                key={s}
-                                onClick={() => updateRoadmapStatus.mutate({ id: item.id, status: s })}
-                                className={`text-xs px-2 py-0.5 rounded ${item.status === s ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                    <div className="space-y-4">
+                      {roadmap.map((item: any, i: number) => {
+                        const statusColor = 
+                          item.status === "completed" ? "bg-green-500" :
+                          item.status === "in_progress" ? "bg-blue-500" : "bg-muted-foreground/40";
+                        
+                        return (
+                          <motion.div
+                            key={item.id}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: i * 0.05 }}
+                            className="flex items-center justify-between group p-2 rounded-lg hover:bg-muted/30 transition-colors"
+                          >
+                            <div className="flex items-center gap-4">
+                              <div className={`w-2.5 h-2.5 rounded-full ${statusColor} shadow-[0_0_8px_rgba(var(--primary),0.5)]`} />
+                              <span className={`text-sm font-medium transition-colors ${
+                                item.status === "completed" ? "text-muted-foreground line-through" : "text-foreground"
+                              }`}>
+                                {item.technology_name}
+                              </span>
+                            </div>
+                            
+                            <div className="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => updateRoadmapStatus.mutate({ id: item.id, status: "planned" })}
+                                className={`w-8 h-8 ${item.status === "planned" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"}`}
                               >
-                                {s === "planned" ? "📋" : s === "in_progress" ? "🔧" : "✅"}
-                              </button>
-                            ))}
-                            <button onClick={() => removeFromRoadmap.mutate(item.id)} className="text-muted-foreground hover:text-destructive ml-2">
-                              <X className="w-3 h-3" />
-                            </button>
-                          </div>
-                        </motion.div>
-                      ))}
+                                <ClipboardList className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => updateRoadmapStatus.mutate({ id: item.id, status: "in_progress" })}
+                                className={`w-8 h-8 ${item.status === "in_progress" ? "bg-blue-500/10 text-blue-500" : "text-muted-foreground hover:text-blue-500"}`}
+                              >
+                                <Wrench className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => updateRoadmapStatus.mutate({ id: item.id, status: "completed" })}
+                                className={`w-8 h-8 ${item.status === "completed" ? "bg-green-500/10 text-green-500" : "text-muted-foreground hover:text-green-500"}`}
+                              >
+                                <CheckSquare className="w-4 h-4" />
+                              </Button>
+                              <div className="w-[1px] h-4 bg-border/50 mx-1" />
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => removeFromRoadmap.mutate(item.id)}
+                                className="w-8 h-8 text-muted-foreground hover:text-destructive"
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </motion.div>
+                        );
+                      })}
                     </div>
                   ) : (
-                    <div className="text-center py-8">
-                      <BookOpen className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                      <p className="text-sm text-muted-foreground mb-4">No items in your roadmap yet.</p>
+                    <div className="text-center py-12">
+                      <BookOpen className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
+                      <p className="text-muted-foreground mb-6">Your roadmap is empty. Start by getting some recommendations!</p>
                       <Link to="/recommendations">
-                        <Button variant="outline" className="border-primary/30 gap-2">
-                          <Sparkles className="w-4 h-4" /> Get Recommendations
+                        <Button className="gap-2">
+                          <Sparkles className="w-4 h-4" /> Get AI Roadmap
                         </Button>
                       </Link>
                     </div>
@@ -392,8 +433,13 @@ const MyDashboard = () => {
                             );
                           })}
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                          {path.techs.filter(t => savedTechs.some((s: any) => s.technology_name.toLowerCase() === t.toLowerCase())).length}/{path.techs.length} skills matched
+                        <div className="text-xs text-muted-foreground flex justify-between items-center">
+                          <span>
+                            {path.techs.filter(t => savedTechs.some((s: any) => s.technology_name.toLowerCase() === t.toLowerCase())).length}/{path.techs.length} skills matched
+                          </span>
+                          <span className="font-mono text-primary">
+                            {Math.round((path.techs.filter(t => savedTechs.some((s: any) => s.technology_name.toLowerCase() === t.toLowerCase())).length / path.techs.length) * 100)}%
+                          </span>
                         </div>
                       </CardContent>
                     </Card>

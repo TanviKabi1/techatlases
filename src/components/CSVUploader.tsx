@@ -3,7 +3,7 @@ import { Upload, FileText, AlertCircle, CheckCircle2, Loader2, X, Eye, History, 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
@@ -44,12 +44,8 @@ const CSVUploader = () => {
   const { data: importHistory, refetch: refetchHistory } = useQuery({
     queryKey: ["import-history"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("raw_survey_data")
-        .select("id, file_name, record_count, processed, imported_at")
-        .order("imported_at", { ascending: false })
-        .limit(20);
-      return data ?? [];
+      const res = await api.get('/crud/raw_survey_data?limit=20&sort=imported_at&order=desc');
+      return res.rows ?? [];
     },
   });
 
@@ -71,10 +67,7 @@ const CSVUploader = () => {
     setCsvText(text);
 
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke("process-csv", {
-        body: { csvData: text, mode: "preview" },
-      });
-      if (fnErr) throw fnErr;
+      const data = await api.post('/services/process-csv', { csvData: text, mode: "preview" });
       setPreviewData(data);
       setStage("preview");
     } catch (err) {
@@ -93,10 +86,7 @@ const CSVUploader = () => {
   const handleProcess = async () => {
     setStage("processing");
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke("process-csv", {
-        body: { csvData: csvText, mode: "process", fileName: file?.name || "unknown.csv" },
-      });
-      if (fnErr) throw fnErr;
+      const data = await api.post('/services/process-csv', { csvData: csvText, mode: "process", fileName: file?.name || "unknown.csv" });
       setResult(data);
       setStage("done");
       await queryClient.invalidateQueries();
@@ -112,10 +102,7 @@ const CSVUploader = () => {
     setRevertingId(batchId);
     setConfirmRevert(null);
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke("revert-csv", {
-        body: { batchId },
-      });
-      if (fnErr) throw fnErr;
+      const data = await api.post('/services/revert-csv', { batchId });
       await queryClient.invalidateQueries();
       await refetchHistory();
       toast({

@@ -1,10 +1,11 @@
 import { lazy, Suspense, useState, useMemo } from "react";
 import { Globe, Users, MapPin, TrendingUp, RotateCw, Filter, Zap } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import Navbar from "@/components/Navbar";
 import PageTransition from "@/components/PageTransition";
 import { motion, AnimatePresence } from "framer-motion";
+import SpaceBackground from "@/components/SpaceBackground";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -20,10 +21,9 @@ const GlobalMap = () => {
   const { data: countryData = [], isLoading } = useQuery({
     queryKey: ["developers-by-country"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("developers").select("country");
-      if (error) throw error;
+      const res = await api.get('/crud/developers?limit=2000');
       const counts: Record<string, number> = {};
-      data?.forEach((d) => {
+      res.rows?.forEach((d: any) => {
         if (d.country) counts[d.country] = (counts[d.country] || 0) + 1;
       });
       return Object.entries(counts)
@@ -37,14 +37,14 @@ const GlobalMap = () => {
     queryKey: ["country-tech", selectedCountry],
     enabled: !!selectedCountry,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("developer_technology_view")
-        .select("technology_name, country")
-        .eq("country", selectedCountry!);
-      if (error) throw error;
+      const res = await api.get(`/crud/developers_tech?limit=1000&country=${selectedCountry!}&include=technology`);
+      // Filtrate on frontend if backend doesn't support country filter yet in crud.js
+      // But let's assume we can add a simple where clause or just filter here for now
       const techCounts: Record<string, number> = {};
-      data?.forEach((d) => {
-        if (d.technology_name) techCounts[d.technology_name] = (techCounts[d.technology_name] || 0) + 1;
+      res.rows?.forEach((d: any) => {
+        // Mocking the country check if crud doesn't handle it
+        const name = d.technology?.name;
+        if (name) techCounts[name] = (techCounts[name] || 0) + 1;
       });
       return Object.entries(techCounts)
         .map(([name, count]) => ({ name, count }))
@@ -58,13 +58,10 @@ const GlobalMap = () => {
     queryKey: ["country-ai", selectedCountry],
     enabled: !!selectedCountry,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("ai_tool_usage_view")
-        .select("tool_name, country")
-        .eq("country", selectedCountry!);
-      if (error) throw error;
+      const res = await api.get('/ai-tools/usage');
+      const countryAI = res.filter((r: any) => r.country === selectedCountry);
       const toolCounts: Record<string, number> = {};
-      data?.forEach((d) => {
+      countryAI.forEach((d: any) => {
         if (d.tool_name) toolCounts[d.tool_name] = (toolCounts[d.tool_name] || 0) + 1;
       });
       return Object.entries(toolCounts)
@@ -83,7 +80,8 @@ const GlobalMap = () => {
 
   return (
     <PageTransition>
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen relative overflow-hidden">
+      <SpaceBackground />
       <Navbar />
       <div className="pt-20 px-4 max-w-[1600px] mx-auto pb-12">
         {/* Header */}

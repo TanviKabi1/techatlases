@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { LogIn, Mail, Lock, User, Shield, Users } from "lucide-react";
@@ -18,14 +18,23 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
-  const [loading, setLoading] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const [submitLoading, setSubmitLoading] = useState(false);
+  
+  const { signIn, signUp, user, isAdmin, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  // Handle auto-redirection for authenticated users
+  useEffect(() => {
+    if (!authLoading && user) {
+      console.log("Auto-redirecting logged in user. Admin:", isAdmin);
+      navigate(isAdmin ? "/admin" : "/dashboard", { replace: true });
+    }
+  }, [user, isAdmin, authLoading, navigate]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setSubmitLoading(true);
 
     if (isSignUp) {
       const { error } = await signUp(email, password, displayName);
@@ -39,10 +48,10 @@ const Login = () => {
       if (error) {
         toast({ title: "Sign in failed", description: error.message, variant: "destructive" });
       } else {
-        navigate(mode === "admin" ? "/admin" : "/dashboard");
+        // Redirection handled by useEffect
       }
     }
-    setLoading(false);
+    setSubmitLoading(false);
   };
 
   const resetForm = () => {
@@ -204,14 +213,14 @@ const Login = () => {
                     </div>
                     <Button
                       type="submit"
-                      disabled={loading}
+                      disabled={submitLoading || authLoading}
                       className={`w-full h-11 ${
                         mode === "admin"
                           ? "bg-primary text-primary-foreground hover:bg-primary/80"
                           : "bg-accent text-accent-foreground hover:bg-accent/80"
                       }`}
                     >
-                      {loading ? "Loading..." : isSignUp ? "Create Account" : "Sign In"}
+                      {submitLoading || authLoading ? "Loading..." : isSignUp ? "Create Account" : "Sign In"}
                     </Button>
                     {mode === "user" && (
                       <p className="text-center text-sm text-muted-foreground">

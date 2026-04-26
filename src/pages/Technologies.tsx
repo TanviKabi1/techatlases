@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Code2, Search, X, GitCompare, Users, Clock, TrendingUp,
@@ -31,11 +31,14 @@ const Technologies = () => {
   const { data: technologies = [], isLoading } = useQuery({
     queryKey: ["tech-explorer"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("developer_technology_view")
-        .select("technology_name, category_name, proficiency, years_used, developer_id");
-      if (error) throw error;
-
+      // Fetching processed data from new backend
+      const data = await api.get('/developers/top-tech');
+      // The old frontend did complex processing. For now, we'll try to map the top-tech response
+      // or implement a fuller route if needed. 
+      // To keep UI working, I'll fetch raw data if specific processing is needed.
+      const rawData = await api.get('/crud/developers_tech?limit=1000&include=technology.category'); 
+      const techIds = await api.get('/crud/technology?limit=500');
+      
       const techMap: Record<string, {
         devs: Set<string>;
         profSum: number;
@@ -44,31 +47,27 @@ const Technologies = () => {
         category: string | null;
       }> = {};
 
-      data?.forEach((row) => {
-        if (!row.technology_name) return;
-        if (!techMap[row.technology_name]) {
-          techMap[row.technology_name] = {
+      rawData.rows?.forEach((row: any) => {
+        const name = row.technology?.name;
+        if (!name) return;
+        if (!techMap[name]) {
+          techMap[name] = {
             devs: new Set(),
             profSum: 0,
             yearsSum: 0,
             count: 0,
-            category: row.category_name,
+            category: row.technology?.category?.name || "Uncategorized",
           };
         }
-        const t = techMap[row.technology_name];
-        if (row.developer_id) t.devs.add(row.developer_id);
+        const t = techMap[name];
+        if (row.developerId) t.devs.add(row.developerId);
         t.profSum += row.proficiency || 0;
-        t.yearsSum += row.years_used || 0;
+        t.yearsSum += row.yearsUsed || 0;
         t.count += 1;
       });
 
-      // Also fetch technology IDs
-      const { data: techIds } = await supabase
-        .from("technology")
-        .select("id, name");
-
       const idMap: Record<string, string> = {};
-      techIds?.forEach((t) => { idMap[t.name] = t.id; });
+      techIds.rows?.forEach((t: any) => { idMap[t.name] = t.id; });
 
       return Object.entries(techMap)
         .map(([name, stats]): TechDetail => ({
@@ -86,14 +85,7 @@ const Technologies = () => {
   // Fetch category insights
   const { data: categories = [] } = useQuery({
     queryKey: ["tech-categories"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("tech_category_insights")
-        .select("category_name, developer_count, technology_count, avg_proficiency")
-        .order("developer_count", { ascending: false });
-      if (error) throw error;
-      return data || [];
-    },
+    queryFn: () => api.get('/developers/category-insights'),
   });
 
   const categoryNames = useMemo(

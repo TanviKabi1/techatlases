@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, Send } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 
 /* ─── Spreads data ─── */
 const SPREADS = [
@@ -210,24 +210,17 @@ function MessagePool() {
   // Fetch initial messages
   useEffect(() => {
     const fetchMessages = async () => {
-      const tenMinsAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-      const { data } = await supabase
-        .from("newspaper_messages")
-        .select("*")
-        .gte("created_at", tenMinsAgo)
-        .order("created_at", { ascending: false })
-        .limit(20);
-      if (data) setMessages(data);
+      try {
+        const data = await api.get('/crud/newspaper_messages?sort=created_at&order=desc&limit=20');
+        if (data.rows) setMessages(data.rows);
+      } catch (e) {
+        console.error("Failed to fetch messages", e);
+      }
     };
     fetchMessages();
 
-    // Realtime subscription
-    const channel = supabase
-      .channel("newspaper-messages")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "newspaper_messages" }, (payload) => {
-        setMessages((prev) => [payload.new as any, ...prev].slice(0, 20));
-      })
-      .subscribe();
+    // Polling for new messages as a temporary replacement for realtime
+    const poll = setInterval(fetchMessages, 10000);
 
     // Auto-cleanup expired messages every 30s
     const cleanup = setInterval(() => {
@@ -235,7 +228,7 @@ function MessagePool() {
     }, 30000);
 
     return () => {
-      supabase.removeChannel(channel);
+      clearInterval(poll);
       clearInterval(cleanup);
     };
   }, []);
@@ -244,7 +237,7 @@ function MessagePool() {
     const trimmed = input.trim();
     if (!trimmed || trimmed.length > 200) return;
     setSending(true);
-    await supabase.from("newspaper_messages").insert({
+    await api.post("/crud/newspaper_messages", {
       display_name: name.trim().slice(0, 30) || "Anonymous",
       message: trimmed.slice(0, 200),
     });

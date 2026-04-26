@@ -9,7 +9,7 @@ import SchemaBrowser from "@/components/SchemaBrowser";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 
 const Admin = () => {
   const { user, isAdmin, loading } = useAuth();
@@ -17,17 +17,12 @@ const Admin = () => {
   const { data: stats } = useQuery({
     queryKey: ["admin-stats"],
     queryFn: async () => {
-      const [devs, techs, tools, imports] = await Promise.all([
-        supabase.from("developers").select("*", { count: "exact", head: true }),
-        supabase.from("technology").select("*", { count: "exact", head: true }),
-        supabase.from("ai_tool").select("*", { count: "exact", head: true }),
-        supabase.from("raw_survey_data").select("*", { count: "exact", head: true }),
-      ]);
+      const summary = await api.get('/developers/summary');
       return {
-        developers: devs.count || 0,
-        technologies: techs.count || 0,
-        aiTools: tools.count || 0,
-        imports: imports.count || 0,
+        developers: summary.developers || 0,
+        technologies: summary.technologies || 0,
+        aiTools: summary.aiTools || 0,
+        imports: summary.imports || 0,
       };
     },
     enabled: !!user && isAdmin,

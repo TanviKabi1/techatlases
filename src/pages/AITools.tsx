@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { Cpu, BarChart3, TrendingUp, Users, Search, X, ThumbsUp, ThumbsDown, Minus } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import Navbar from "@/components/Navbar";
 import PageTransition from "@/components/PageTransition";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -59,10 +59,7 @@ const AITools = () => {
 
   const { data: rawData } = useQuery({
     queryKey: ["ai-tools-usage"],
-    queryFn: async () => {
-      const { data } = await supabase.from("ai_tool_usage_view").select("*");
-      return data ?? [];
-    },
+    queryFn: () => api.get('/ai-tools/usage'),
   });
 
   const toolStats = useMemo(() => {

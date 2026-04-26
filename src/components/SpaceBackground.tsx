@@ -1,9 +1,23 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useMemo } from "react";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const SpaceBackground = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const { theme } = useTheme();
+
+  const themeColors = useMemo(() => {
+    if (!theme || !theme.colors) return [];
+    return [
+      `hsla(${theme.colors.primary} /`,
+      `hsla(${theme.colors.secondary} /`,
+      `hsla(${theme.colors.accent} /`
+    ];
+  }, [theme]);
+
+  const starColor = theme?.isDark ? "hsla(230 100% 95% /" : "hsla(230 100% 50% /";
 
   useEffect(() => {
+    if (!theme || !theme.colors || themeColors.length === 0) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -32,28 +46,35 @@ const SpaceBackground = () => {
     }
 
     // Nebulae
-    const nebulaColors = [
-      "rgba(59,130,246,", "rgba(139,92,246,", "rgba(6,182,212,",
-    ];
     for (let i = 0; i < 5; i++) {
       nebulae.push({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
         radius: Math.random() * 200 + 100,
-        color: nebulaColors[i % nebulaColors.length],
+        color: themeColors[i % themeColors.length],
         opacity: Math.random() * 0.04 + 0.02,
       });
     }
 
     const draw = () => {
-      ctx.fillStyle = "rgba(10, 12, 20, 1)";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      if (theme.isDark) {
+        ctx.fillStyle = `hsl(${theme.colors.background})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      } else {
+        // Brighter solar system gradient
+        const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+        grad.addColorStop(0, `hsl(${theme.colors.background})`);
+        grad.addColorStop(0.5, `hsla(${theme.colors.primary} / 0.1)`);
+        grad.addColorStop(1, `hsla(${theme.colors.secondary} / 0.1)`);
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
 
       // Nebulae
       for (const n of nebulae) {
         const grad = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.radius);
-        grad.addColorStop(0, `${n.color}${n.opacity})`);
-        grad.addColorStop(1, `${n.color}0)`);
+        grad.addColorStop(0, `${n.color} ${n.opacity})`);
+        grad.addColorStop(1, `${n.color} 0)`);
         ctx.fillStyle = grad;
         ctx.fillRect(n.x - n.radius, n.y - n.radius, n.radius * 2, n.radius * 2);
       }
@@ -63,7 +84,7 @@ const SpaceBackground = () => {
         const twinkle = Math.sin(Date.now() * 0.001 * s.speed + s.x) * 0.3 + 0.7;
         ctx.beginPath();
         ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(200,210,255,${s.opacity * twinkle})`;
+        ctx.fillStyle = `${starColor} ${s.opacity * twinkle})`;
         ctx.fill();
       }
 
@@ -75,7 +96,7 @@ const SpaceBackground = () => {
       cancelAnimationFrame(animationId);
       window.removeEventListener("resize", resize);
     };
-  }, []);
+  }, [theme, themeColors]);
 
   return (
     <canvas

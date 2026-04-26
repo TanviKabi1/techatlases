@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,20 +43,9 @@ const AdminDataTable = ({ title, icon, tableName, columns, defaultValues }: Data
   const { data, isLoading } = useQuery({
     queryKey,
     queryFn: async () => {
-      let query = supabase
-        .from(tableName)
-        .select("*", { count: "exact" })
-        .order(sortCol, { ascending: sortAsc })
-        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
-
-      if (search) {
-        const searchCol = columns[0].key;
-        query = query.ilike(searchCol, `%${search}%`);
-      }
-
-      const { data, count, error } = await query;
-      if (error) throw error;
-      return { rows: data || [], total: count || 0 };
+      const order = sortAsc ? 'asc' : 'desc';
+      const res = await api.get(`/crud/${tableName}?page=${page + 1}&limit=${PAGE_SIZE}&search=${search}&sort=${sortCol}&order=${order}`);
+      return { rows: res.rows || [], total: res.total || 0 };
     },
   });
 
@@ -70,11 +59,9 @@ const AdminDataTable = ({ title, icon, tableName, columns, defaultValues }: Data
       });
 
       if (isCreate) {
-        const { error } = await supabase.from(tableName).insert(cleaned);
-        if (error) throw error;
+        await api.post(`/crud/${tableName}`, cleaned);
       } else {
-        const { error } = await supabase.from(tableName).update(cleaned).eq("id", String(editRow?.id));
-        if (error) throw error;
+        await api.put(`/crud/${tableName}/${String(editRow?.id)}`, cleaned);
       }
     },
     onSuccess: () => {
@@ -90,8 +77,7 @@ const AdminDataTable = ({ title, icon, tableName, columns, defaultValues }: Data
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from(tableName).delete().eq("id", id);
-      if (error) throw error;
+      await api.delete(`/crud/${tableName}/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [tableName] });

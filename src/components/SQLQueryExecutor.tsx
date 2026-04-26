@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -44,27 +44,20 @@ const SQLQueryExecutor = () => {
     const start = performance.now();
 
     try {
-      // Use rpc to run read-only queries via a safe view/function approach
-      // For SELECT queries, we use supabase's built-in table access
-      const { data, error: err } = await supabase.rpc("execute_readonly_query" as never, { query_text: query.trim() } as never);
+      const data = await api.post(`/crud/query`, { sql: query.trim() });
 
       const elapsed = Math.round(performance.now() - start);
       setExecutionTime(elapsed);
 
-      if (err) {
-        setError(err.message);
-        toast({ title: "Query failed", description: err.message, variant: "destructive" });
-      } else {
-        const rows = (data as Record<string, unknown>[]) || [];
-        if (rows.length > 0) {
-          setColumns(Object.keys(rows[0]));
-        }
-        setResults(rows);
-        setHistory((prev) => [query.trim(), ...prev.filter((q) => q !== query.trim())].slice(0, 10));
-        toast({ title: "Query executed", description: `${rows.length} row(s) returned in ${elapsed}ms` });
+      const rows = (data as Record<string, unknown>[]) || [];
+      if (rows.length > 0) {
+        setColumns(Object.keys(rows[0]));
       }
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Unknown error";
+      setResults(rows);
+      setHistory((prev) => [query.trim(), ...prev.filter((q) => q !== query.trim())].slice(0, 10));
+      toast({ title: "Query executed", description: `${rows.length} row(s) returned in ${elapsed}ms` });
+    } catch (e: any) {
+      const msg = e.message || "Unknown error";
       setError(msg);
       toast({ title: "Error", description: msg, variant: "destructive" });
     }

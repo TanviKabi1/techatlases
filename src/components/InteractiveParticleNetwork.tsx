@@ -1,4 +1,5 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useMemo } from "react";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface Particle {
   x: number;
@@ -11,7 +12,6 @@ interface Particle {
   wasAttracted: boolean;
 }
 
-const COLORS = ["#3aa6ff", "#06b6d4", "#8b5cf6"];
 const CONNECTION_DIST = 140;
 const CURSOR_RADIUS = 150;
 const ATTRACTION_STRENGTH = 0.015;
@@ -25,17 +25,39 @@ const InteractiveParticleNetwork = () => {
   const mouseRef = useRef({ x: -9999, y: -9999, active: false });
   const lastActiveRef = useRef<number>(0);
   const animRef = useRef<number>(0);
+  const { theme } = useTheme();
 
-  const createParticle = useCallback((x: number, y: number): Particle => ({
-    x,
-    y,
-    vx: (Math.random() - 0.5) * 0.4,
-    vy: (Math.random() - 0.5) * 0.4,
-    size: Math.random() * 2 + 1,
-    color: COLORS[Math.floor(Math.random() * COLORS.length)],
-    alpha: Math.random() * 0.6 + 0.4,
-    wasAttracted: false,
-  }), []);
+  const themeColors = useMemo(() => {
+    if (!theme || !theme.colors) return [];
+    if (theme.isDark) {
+      return [
+        `hsl(${theme.colors.primary})`,
+        `hsl(${theme.colors.secondary})`,
+        `hsl(${theme.colors.accent})`
+      ];
+    } else {
+      // Use darker variants for light mode
+      return [
+        `hsl(${theme.colors.primary.replace("85%", "40%")})`,
+        `hsl(${theme.colors.secondary.replace("85%", "40%")})`,
+        `hsl(${theme.colors.accent.replace("85%", "40%")})`
+      ];
+    }
+  }, [theme]);
+
+  const createParticle = useCallback((x: number, y: number): Particle => {
+    if (themeColors.length === 0) return {} as Particle;
+    return {
+      x,
+      y,
+      vx: (Math.random() - 0.5) * 0.4,
+      vy: (Math.random() - 0.5) * 0.4,
+      size: Math.random() * 2 + 1,
+      color: themeColors[Math.floor(Math.random() * themeColors.length)],
+      alpha: Math.random() * 0.6 + 0.4,
+      wasAttracted: false,
+    };
+  }, [themeColors]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -164,7 +186,7 @@ const InteractiveParticleNetwork = () => {
           if (dist < CONNECTION_DIST) {
             const opacity = 0.15 * (1 - dist / CONNECTION_DIST);
             ctx.beginPath();
-            ctx.strokeStyle = `rgba(58, 166, 255, ${opacity})`;
+            ctx.strokeStyle = `hsla(${theme.colors.primary} / ${opacity})`;
             ctx.lineWidth = 0.6;
             ctx.moveTo(particles[i].x, particles[i].y);
             ctx.lineTo(particles[j].x, particles[j].y);
@@ -182,7 +204,7 @@ const InteractiveParticleNetwork = () => {
           if (dist < CURSOR_RADIUS) {
             const opacity = 0.3 * (1 - dist / CURSOR_RADIUS);
             ctx.beginPath();
-            ctx.strokeStyle = `rgba(6, 182, 212, ${opacity})`;
+            ctx.strokeStyle = `hsla(${theme.colors.secondary} / ${opacity})`;
             ctx.lineWidth = 0.8;
             ctx.moveTo(p.x, p.y);
             ctx.lineTo(mouse.x, mouse.y);
@@ -191,8 +213,8 @@ const InteractiveParticleNetwork = () => {
         }
         // Cursor glow
         const g = ctx.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, 6);
-        g.addColorStop(0, "rgba(6, 182, 212, 0.6)");
-        g.addColorStop(1, "rgba(6, 182, 212, 0)");
+        g.addColorStop(0, `hsla(${theme.colors.secondary} / 0.6)`);
+        g.addColorStop(1, `hsla(${theme.colors.secondary} / 0)`);
         ctx.beginPath();
         ctx.arc(mouse.x, mouse.y, 6, 0, Math.PI * 2);
         ctx.fillStyle = g;
@@ -230,7 +252,7 @@ const InteractiveParticleNetwork = () => {
       canvas.removeEventListener("mouseleave", onMouseLeave);
       canvas.removeEventListener("click", onClick);
     };
-  }, [createParticle]);
+  }, [createParticle, theme, themeColors]);
 
   return (
     <canvas

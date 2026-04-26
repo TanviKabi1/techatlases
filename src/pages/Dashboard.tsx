@@ -128,7 +128,7 @@ const Dashboard = () => {
     summary, isLoading, topTech, aiAdoption, categoryInsights,
     devsByRegion, salaryByRole, experienceDist, proficiencyByRegion,
     devsByEducation, sentimentData,
-  } = useDashboardData();
+  } = useDashboardData({ region: regionFilter, category: categoryFilter });
 
   // Derive filter options
   const regionOptions = useMemo(() => ["All", ...devsByRegion.map((r) => r.name)], [devsByRegion]);
