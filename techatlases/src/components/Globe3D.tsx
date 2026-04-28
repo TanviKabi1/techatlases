@@ -416,20 +416,34 @@ const Globe3D = ({ data, selectedRegion, onCountrySelect, autoRotate }: Globe3DP
     globe.pointOfView({ lat: 20, lng: 10, altitude: 2.2 }, 0);
   }, [theme, themeBg, themePrimary, themeSecondary]);
 
-  // Polygon appearance with soft glow for hover
+  // Debounce for smooth hover transitions between elements
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const handleHover = useCallback((countryName: string | null) => {
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    if (countryName) {
+      setHoveredCountry(countryName);
+    } else {
+      hoverTimeoutRef.current = setTimeout(() => {
+        setHoveredCountry(null);
+      }, 50); // Small debounce to prevent flickering
+    }
+  }, []);
+
+  // Polygon appearance with soft glow for hover and reliable base hit detection
   const getPolygonColor = useCallback((feat: any) => {
-    if (!theme?.colors) return "rgba(0,0,0,0)";
     const name = feat?.properties?.name;
     const isHovered = hoveredCountry === name;
     
     if (isHovered) {
-      // More intense pulsing glow for hovered country
-      const opacity = theme.isDark ? 0.6 + Math.sin(pulseTime * 8) * 0.2 : 0.4 + Math.sin(pulseTime * 8) * 0.15;
-      return `hsla(${theme.colors.primary} / ${opacity})`;
+      // Intensely brighten the whole country surface matching the theme
+      const opacity = theme?.isDark ? 0.7 + Math.sin(pulseTime * 6) * 0.2 : 0.6 + Math.sin(pulseTime * 6) * 0.15;
+      return `hsla(${theme?.colors?.primary || "0 0% 100%"} / ${opacity})`;
     }
     
-    if (countMap[name]) return `hsla(${theme.colors.primary} / ${theme.isDark ? 0.1 : 0.05})`;
-    return "rgba(0,0,0,0)";
+    if (countMap[name]) return `hsla(${theme?.colors?.primary || "0 0% 100%"} / ${theme?.isDark ? 0.15 : 0.1})`;
+    
+    // Near-invisible base material for all countries to guarantee raycast detection
+    return "rgba(255, 255, 255, 0.01)";
   }, [hoveredCountry, theme, countMap, pulseTime]);
 
   if (!theme) return null;
@@ -454,27 +468,28 @@ const Globe3D = ({ data, selectedRegion, onCountrySelect, autoRotate }: Globe3DP
             const isHovered = hoveredCountry === feat?.properties?.name;
             if (isHovered) {
               // Brighter, more intense stroke for hover
-              return `hsla(${theme.colors.primary} / ${0.9 + Math.sin(pulseTime * 8) * 0.1})`;
+              return `hsla(${theme?.colors?.primary || "0 0% 100%"} / ${0.9 + Math.sin(pulseTime * 8) * 0.1})`;
             }
             return `hsla(${theme?.colors?.primary || "0 0% 100%"} / 0.15)`;
           }}
           // Significantly increased pulsing altitude for hovered country
           polygonAltitude={(feat: any) => {
             const isHovered = hoveredCountry === feat?.properties?.name;
-            return isHovered ? 0.08 + Math.sin(pulseTime * 6) * 0.04 : 0.005;
+            return isHovered ? 0.08 + Math.sin(pulseTime * 6) * 0.04 : 0.01;
           }}
-          onPolygonHover={(feat: any) => setHoveredCountry(feat?.properties?.name || null)}
+          polygonsTransitionDuration={0}
+          onPolygonHover={(feat: any) => handleHover(feat?.properties?.name || null)}
           onPolygonClick={(feat: any) => onCountrySelect(feat?.properties?.name || null)}
 
           // Towers (Points Data)
           pointsData={towersData}
           pointLat="lat"
           pointLng="lng"
-          pointColor="color"
+          pointColor={(pt: any) => hoveredCountry === pt.country ? themePrimary : pt.color}
           pointAltitude="height"
           pointRadius="radius"
           pointsMerge={false}
-          onPointHover={(pt: any) => setHoveredCountry(pt?.country || null)}
+          onPointHover={(pt: any) => handleHover(pt?.country || null)}
           onPointClick={(pt: any) => onCountrySelect(pt.country)}
           
           // Arcs (Staggered data flows)
@@ -485,13 +500,14 @@ const Globe3D = ({ data, selectedRegion, onCountrySelect, autoRotate }: Globe3DP
           arcEndLat="endLat"
           arcEndLng="endLng"
           arcEndAltitude="endAlt"
-          arcColor="color"
+          arcColor={(arc: any) => (hoveredCountry === arc.startCountry || hoveredCountry === arc.endCountry) ? [themeAccent, themePrimary] : arc.color}
           arcDashLength="dashLength"
           arcDashGap="dashGap"
           arcDashAnimateTime="dashAnimateTime"
           arcStroke={0.3}
           arcAltitudeAutoScale={0.5}
-          onArcClick={(arc: any) => onCountrySelect(arc.label.includes("Hub") ? hoveredCountry : null)} // Fallback selection
+          onArcHover={(arc: any) => handleHover(arc?.startCountry || null)}
+          onArcClick={(arc: any) => onCountrySelect(arc?.startCountry || null)}
           
           // Animation
           onGlobeReady={() => {
@@ -508,17 +524,18 @@ const Globe3D = ({ data, selectedRegion, onCountrySelect, autoRotate }: Globe3DP
         />
       )}
 
-      {/* Enhanced Floating Intelligence Card */}
+      {/* Enhanced Floating Intelligence Card (Bottom Left Anchor) */}
       <AnimatePresence>
         {hoveredCountry && (
           <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.9 }}
-            className="absolute top-8 left-8 pointer-events-none z-50"
+            key={hoveredCountry}
+            initial={{ opacity: 0, y: 15, x: -10 }}
+            animate={{ opacity: 1, y: 0, x: 0 }}
+            exit={{ opacity: 0, y: 10, x: -10, transition: { duration: 0.2 } }}
+            className="absolute bottom-8 left-8 pointer-events-none z-50"
           >
             <div 
-              className="glass p-5 rounded-3xl min-w-[240px] shadow-[0_0_40px_rgba(0,0,0,0.3)] border-2 transition-all duration-300" 
+              className="glass p-5 rounded-3xl min-w-[260px] shadow-[0_0_40px_rgba(0,0,0,0.3)] border-2 transition-all duration-300 backdrop-blur-xl bg-card/60" 
               style={{ 
                 borderColor: `hsla(${theme.colors.primary} / ${0.3 + Math.sin(pulseTime * 3) * 0.15})`,
                 boxShadow: `0 0 20px hsla(${theme.colors.primary} / 0.1)`
