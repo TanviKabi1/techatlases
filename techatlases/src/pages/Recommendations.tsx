@@ -295,10 +295,10 @@ const Recommendations = () => {
 
                   return (
                     <div key={priority} className="space-y-3">
-                      <div className="flex items-center gap-2 mb-1 px-1">
-                        <div className="w-2 h-2 rounded-full" style={{ background: config.color }} />
-                        <h2 className="text-sm font-semibold text-foreground">{config.label}</h2>
-                        <span className="text-xs text-muted-foreground">({items.length})</span>
+                      <div className="inline-flex items-center gap-2.5 mb-3 px-3.5 py-1.5 rounded-full bg-card/80 backdrop-blur-md border border-primary/20 shadow-sm">
+                        <div className="w-2 h-2 rounded-full" style={{ background: config.color, boxShadow: `0 0 10px ${config.color}` }} />
+                        <h2 className="text-sm font-bold text-foreground tracking-wide">{config.label}</h2>
+                        <span className="text-xs font-mono text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-md">({items.length})</span>
                       </div>
                       <div className="grid gap-3">
                         {items.map((rec, i) => {
