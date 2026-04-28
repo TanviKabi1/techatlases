@@ -184,6 +184,7 @@ const GlobalMap = () => {
                 <Globe3D
                   data={countryData}
                   selectedRegion={selectedRegion}
+                  selectedCountry={selectedCountry}
                   onCountrySelect={setSelectedCountry}
                   autoRotate={autoRotate}
                 />

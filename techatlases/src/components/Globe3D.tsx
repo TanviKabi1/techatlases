@@ -107,6 +107,7 @@ interface CountryData {
 interface Globe3DProps {
   data: CountryData[];
   selectedRegion: string;
+  selectedCountry?: string | null;
   onCountrySelect: (country: string | null) => void;
   autoRotate: boolean;
 }
@@ -136,14 +137,15 @@ interface ArcDatum {
   dashGap: number;
 }
 
-const Globe3D = ({ data, selectedRegion, onCountrySelect, autoRotate }: Globe3DProps) => {
+const Globe3D = ({ data, selectedRegion, selectedCountry, onCountrySelect, autoRotate }: Globe3DProps) => {
   const globeRef = useRef<any>();
   const containerRef = useRef<HTMLDivElement>(null);
   const [geoJson, setGeoJson] = useState<any>(null);
   const [hoveredCountry, setHoveredCountry] = useState<string | null>(null);
   const [dimensions, setDimensions] = useState({ width: 600, height: 500 });
-  const [pulseTime, setPulseTime] = useState(0);
   const { theme } = useTheme();
+
+  const activeCountry = selectedCountry || hoveredCountry;
 
   // Theme colors as standard CSS strings
   const themePrimary = useMemo(() => theme?.colors ? toHSL(theme.colors.primary) : "#3b82f6", [theme]);
@@ -162,16 +164,7 @@ const Globe3D = ({ data, selectedRegion, onCountrySelect, autoRotate }: Globe3DP
     return Math.max(...data.map((d) => d.count), 1);
   }, [data]);
 
-  // Animation loop for pulsing effect
-  useEffect(() => {
-    let frameId: number;
-    const animate = (time: number) => {
-      setPulseTime(time / 1000);
-      frameId = requestAnimationFrame(animate);
-    };
-    frameId = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(frameId);
-  }, []);
+  // Remove pulseTime effect entirely as per user request
 
   // Load GeoJSON
   useEffect(() => {
@@ -429,22 +422,7 @@ const Globe3D = ({ data, selectedRegion, onCountrySelect, autoRotate }: Globe3DP
     }
   }, []);
 
-  // Polygon appearance with soft glow for hover and reliable base hit detection
-  const getPolygonColor = useCallback((feat: any) => {
-    const name = feat?.properties?.name;
-    const isHovered = hoveredCountry === name;
-    
-    if (isHovered) {
-      // Intensely brighten the whole country surface matching the theme
-      const opacity = theme?.isDark ? 0.7 + Math.sin(pulseTime * 6) * 0.2 : 0.6 + Math.sin(pulseTime * 6) * 0.15;
-      return `hsla(${theme?.colors?.primary || "0 0% 100%"} / ${opacity})`;
-    }
-    
-    if (countMap[name]) return `hsla(${theme?.colors?.primary || "0 0% 100%"} / ${theme?.isDark ? 0.15 : 0.1})`;
-    
-    // Near-invisible base material for all countries to guarantee raycast detection
-    return "rgba(255, 255, 255, 0.02)";
-  }, [hoveredCountry, theme, countMap, pulseTime]);
+
 
   if (!theme) return null;
 
@@ -462,20 +440,16 @@ const Globe3D = ({ data, selectedRegion, onCountrySelect, autoRotate }: Globe3DP
           
           // Polygons (Countries)
           polygonsData={geoJson.features}
-          polygonCapColor={getPolygonColor}
+          polygonCapColor={(feat: any) => {
+            const name = feat?.properties?.name;
+            if (selectedCountry === name) return themePrimary;
+            if (hoveredCountry === name) return `hsla(${theme?.colors?.primary || "0 0% 100%"} / 0.5)`;
+            if (countMap[name]) return `hsla(${theme?.colors?.primary || "0 0% 100%"} / 0.2)`;
+            return "rgba(255, 255, 255, 0.05)";
+          }}
           polygonSideColor={() => "rgba(15, 23, 42, 0.1)"}
-          polygonStrokeColor={(feat: any) => {
-            const isHovered = hoveredCountry === feat?.properties?.name;
-            if (isHovered) {
-              // Brighter, more intense stroke for hover
-              return `hsla(${theme?.colors?.primary || "0 0% 100%"} / ${0.9 + Math.sin(pulseTime * 8) * 0.1})`;
-            }
-            return `hsla(${theme?.colors?.primary || "0 0% 100%"} / 0.15)`;
-          }}
-          // Static altitude based on hover state to avoid geometry rebuilds every frame
-          polygonAltitude={(feat: any) => {
-            return hoveredCountry === feat?.properties?.name ? 0.08 : 0.015;
-          }}
+          polygonStrokeColor={(feat: any) => (selectedCountry === feat?.properties?.name || hoveredCountry === feat?.properties?.name) ? "#ffffff" : "rgba(255,255,255,0.2)"}
+          polygonAltitude={0.015}
           polygonsTransitionDuration={300}
           onPolygonHover={(feat: any) => handleHover(feat?.properties?.name || null)}
           onPolygonClick={(feat: any) => onCountrySelect(feat?.properties?.name || null)}
@@ -525,9 +499,9 @@ const Globe3D = ({ data, selectedRegion, onCountrySelect, autoRotate }: Globe3DP
 
       {/* Enhanced Floating Intelligence Card (Bottom Left Anchor) */}
       <AnimatePresence>
-        {hoveredCountry && (
+        {activeCountry && (
           <motion.div
-            key={hoveredCountry}
+            key={activeCountry}
             initial={{ opacity: 0, y: 15, x: -10 }}
             animate={{ opacity: 1, y: 0, x: 0 }}
             exit={{ opacity: 0, y: 10, x: -10, transition: { duration: 0.2 } }}
@@ -536,7 +510,7 @@ const Globe3D = ({ data, selectedRegion, onCountrySelect, autoRotate }: Globe3DP
             <div 
               className="glass p-5 rounded-3xl min-w-[260px] shadow-[0_0_40px_rgba(0,0,0,0.3)] border-2 transition-all duration-300 backdrop-blur-xl bg-card/60" 
               style={{ 
-                borderColor: `hsla(${theme.colors.primary} / ${0.3 + Math.sin(pulseTime * 3) * 0.15})`,
+                borderColor: `hsla(${theme.colors.primary} / 0.4)`,
                 boxShadow: `0 0 20px hsla(${theme.colors.primary} / 0.1)`
               }}
             >
@@ -547,11 +521,10 @@ const Globe3D = ({ data, selectedRegion, onCountrySelect, autoRotate }: Globe3DP
                     style={{ 
                       backgroundColor: themePrimary,
                       boxShadow: `0 0 15px ${themePrimary}`,
-                      animation: 'pulse 2s infinite'
                     }} 
                   />
                   <h4 className="text-lg font-bold text-foreground tracking-tight">
-                    {hoveredCountry}
+                    {activeCountry}
                   </h4>
                 </div>
                 <div className="px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-[9px] font-bold text-primary uppercase tracking-widest">
@@ -559,18 +532,18 @@ const Globe3D = ({ data, selectedRegion, onCountrySelect, autoRotate }: Globe3DP
                 </div>
               </div>
 
-              {countMap[hoveredCountry] ? (
+              {countMap[activeCountry] ? (
                 <div className="space-y-3">
                   <div className="flex justify-between items-end">
                     <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Transmission Rate</span>
                     <span className="text-xl font-mono font-bold text-foreground tabular-nums">
-                      {countMap[hoveredCountry]}
+                      {countMap[activeCountry]}
                     </span>
                   </div>
                   <div className="w-full h-1.5 bg-muted/30 rounded-full overflow-hidden">
                     <motion.div 
                       initial={{ width: 0 }}
-                      animate={{ width: `${(countMap[hoveredCountry] / maxCount) * 100}%` }}
+                      animate={{ width: `${(countMap[activeCountry] / maxCount) * 100}%` }}
                       className="h-full rounded-full"
                       style={{ background: `linear-gradient(90deg, ${themeSecondary}, ${themePrimary})` }}
                     />
