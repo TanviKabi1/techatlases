@@ -1,0 +1,215 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Region {
+  id         String      @id @default(uuid())
+  name       String      @unique
+  continent  String?
+  createdAt  DateTime    @default(now()) @map("created_at")
+  companies  Company[]
+  developers Developer[]
+
+  @@map("region")
+}
+
+model Company {
+  id           String        @id @default(uuid())
+  name         String
+  size         String?
+  industry     String?
+  regionId     String?       @map("region_id")
+  region       Region?       @relation(fields: [regionId], references: [id])
+  createdAt    DateTime      @default(now()) @map("created_at")
+  workProfiles WorkProfile[]
+
+  @@map("company")
+}
+
+model TechCategory {
+  id              String       @id @default(uuid())
+  name            String       @unique
+  description     String?
+  popularityScore Decimal?     @default(0) @map("popularity_score")
+  createdAt       DateTime     @default(now()) @map("created_at")
+  technologies    Technology[]
+
+  @@map("tech_category")
+}
+
+model Technology {
+  id            String          @id @default(uuid())
+  name          String          @unique
+  categoryId    String?         @map("category_id")
+  category      TechCategory?   @relation(fields: [categoryId], references: [id])
+  createdAt     DateTime        @default(now()) @map("created_at")
+  developerTech DeveloperTech[]
+
+  @@map("technology")
+}
+
+model AITool {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  category    String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  usersAi     UsesAI[]
+
+  @@map("ai_tool")
+}
+
+model Developer {
+  id             String          @id @default(uuid())
+  name           String?
+  email          String?
+  age            Int?
+  country        String?
+  regionId       String?         @map("region_id")
+  region         Region?         @relation(fields: [regionId], references: [id])
+  yearsCoding    Int?            @map("years_coding")
+  educationLevel String?         @map("education_level")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  workProfile    WorkProfile?
+  developerTech  DeveloperTech[]
+  aiUsage        UsesAI[]
+
+  @@map("developers")
+}
+
+model WorkProfile {
+  id             String     @id @default(uuid())
+  developerId    String     @unique @map("developer_id")
+  developer      Developer  @relation(fields: [developerId], references: [id], onDelete: Cascade)
+  companyId      String?    @map("company_id")
+  company        Company?   @relation(fields: [companyId], references: [id])
+  jobRole        String?    @map("job_role")
+  employmentType String?    @map("employment_type")
+  salary         Decimal?
+  remoteWork     String?    @map("remote_work")
+  createdAt      DateTime   @default(now()) @map("created_at")
+
+  @@map("work_profile")
+}
+
+model DeveloperTech {
+  id           String     @id @default(uuid())
+  developerId  String     @map("developer_id")
+  developer    Developer  @relation(fields: [developerId], references: [id], onDelete: Cascade)
+  technologyId String     @map("technology_id")
+  technology   Technology @relation(fields: [technologyId], references: [id], onDelete: Cascade)
+  proficiency  Int?       @default(1)
+  yearsUsed    Int?       @default(0) @map("years_used")
+  createdAt    DateTime   @default(now()) @map("created_at")
+
+  @@unique([developerId, technologyId])
+  @@map("developers_tech")
+}
+
+model UsesAI {
+  id            String    @id @default(uuid())
+  developerId   String    @map("developer_id")
+  developer     Developer @relation(fields: [developerId], references: [id], onDelete: Cascade)
+  aiToolId      String    @map("ai_tool_id")
+  aiTool        AITool    @relation(fields: [aiToolId], references: [id], onDelete: Cascade)
+  sentiment     String?
+  useCase       String?   @map("use_case")
+  adoptionScore Int?      @default(0) @map("adoption_score")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  @@unique([developerId, aiToolId])
+  @@map("uses_ai")
+}
+
+model RawSurveyData {
+  id          String    @id @default(uuid())
+  rawJson     Json      @map("raw_json")
+  processed   Boolean?  @default(false)
+  importedAt  DateTime  @default(now()) @map("imported_at")
+  processedAt DateTime? @map("processed_at")
+
+  @@map("raw_survey_data")
+}
+
+model User {
+  id        String          @id @default(uuid())
+  email     String          @unique
+  password  String
+  roles     UserRole[]
+  profile   Profile?
+  savedTech SavedTechnology[]
+  savedTrends SavedTrend[]
+  roadmap   UserRoadmap[]
+  createdAt DateTime        @default(now()) @map("created_at")
+
+  @@map("users")
+}
+
+model UserRole {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String   @default("user") // 'admin', 'moderator', 'user'
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, role])
+  @@map("user_roles")
+}
+
+model Profile {
+  id          String   @id @map("id")
+  user        User     @relation(fields: [id], references: [id], onDelete: Cascade)
+  email       String?
+  displayName String?  @map("display_name")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("profiles")
+}
+
+model NewspaperMessage {
+  id          String   @id @default(uuid())
+  displayName String?  @map("display_name")
+  message     String   @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("newspaper_messages")
+}
+
+model SavedTechnology {
+  id             String     @id @default(uuid())
+  userId         String     @map("user_id")
+  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  technologyName String     @map("technology_name")
+  createdAt      DateTime   @default(now()) @map("created_at")
+
+  @@map("saved_technologies")
+}
+
+model SavedTrend {
+  id            String     @id @default(uuid())
+  userId        String     @map("user_id")
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trendName     String     @map("trend_name")
+  trendCategory String?    @map("trend_category")
+  createdAt     DateTime   @default(now()) @map("created_at")
+
+  @@map("saved_trends")
+}
+
+model UserRoadmap {
+  id             String     @id @default(uuid())
+  userId         String     @map("user_id")
+  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  technologyName String     @map("technology_name")
+  status         String     @default("planned") // 'planned', 'in-progress', 'completed'
+  progress       Int?       @default(0)
+  priority       Int?       @default(0)
+  createdAt      DateTime   @default(now()) @map("created_at")
+
+  @@map("user_roadmap")
+}
