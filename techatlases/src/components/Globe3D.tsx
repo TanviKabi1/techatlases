@@ -422,7 +422,15 @@ const Globe3D = ({ data, selectedRegion, selectedCountry, onCountrySelect, autoR
     }
   }, []);
 
-
+  // Update autoRotate dynamically when prop changes
+  useEffect(() => {
+    if (globeRef.current) {
+      const controls = globeRef.current.controls();
+      if (controls) {
+        controls.autoRotate = autoRotate;
+      }
+    }
+  }, [autoRotate]);
 
   if (!theme) return null;
 

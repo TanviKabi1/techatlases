@@ -106,16 +106,21 @@ const GlobalMap = () => {
           </div>
 
           {/* Controls */}
-          <div className="flex items-center gap-4 flex-wrap">
-            <div className="flex items-center gap-2">
-              <RotateCw className="w-4 h-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Auto-rotate</span>
-              <Switch checked={autoRotate} onCheckedChange={setAutoRotate} />
+          <div className="flex items-center gap-4 flex-wrap bg-card/60 backdrop-blur-md border border-primary/20 p-2.5 rounded-2xl shadow-sm">
+            <div className="flex items-center gap-2 px-2">
+              <RotateCw className="w-4 h-4 text-foreground" />
+              <span className="text-sm font-semibold text-foreground">Auto-rotate</span>
+              <Switch 
+                checked={autoRotate} 
+                onCheckedChange={setAutoRotate} 
+                className="data-[state=checked]:bg-primary ml-1"
+              />
             </div>
-            <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-muted-foreground" />
+            <div className="h-6 w-px bg-border/50 hidden sm:block"></div>
+            <div className="flex items-center gap-2 px-2">
+              <Filter className="w-4 h-4 text-foreground" />
               <Select value={selectedRegion} onValueChange={setSelectedRegion}>
-                <SelectTrigger className="w-[160px] h-8 text-xs glass border-primary/20">
+                <SelectTrigger className="w-[160px] h-8 text-xs bg-background/50 border-primary/30 text-foreground font-medium hover:bg-background/80 transition-colors">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
