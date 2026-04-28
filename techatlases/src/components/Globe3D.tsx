@@ -443,7 +443,7 @@ const Globe3D = ({ data, selectedRegion, onCountrySelect, autoRotate }: Globe3DP
     if (countMap[name]) return `hsla(${theme?.colors?.primary || "0 0% 100%"} / ${theme?.isDark ? 0.15 : 0.1})`;
     
     // Near-invisible base material for all countries to guarantee raycast detection
-    return "rgba(255, 255, 255, 0.01)";
+    return "rgba(255, 255, 255, 0.02)";
   }, [hoveredCountry, theme, countMap, pulseTime]);
 
   if (!theme) return null;
@@ -472,12 +472,11 @@ const Globe3D = ({ data, selectedRegion, onCountrySelect, autoRotate }: Globe3DP
             }
             return `hsla(${theme?.colors?.primary || "0 0% 100%"} / 0.15)`;
           }}
-          // Significantly increased pulsing altitude for hovered country
+          // Static altitude based on hover state to avoid geometry rebuilds every frame
           polygonAltitude={(feat: any) => {
-            const isHovered = hoveredCountry === feat?.properties?.name;
-            return isHovered ? 0.08 + Math.sin(pulseTime * 6) * 0.04 : 0.01;
+            return hoveredCountry === feat?.properties?.name ? 0.08 : 0.015;
           }}
-          polygonsTransitionDuration={0}
+          polygonsTransitionDuration={300}
           onPolygonHover={(feat: any) => handleHover(feat?.properties?.name || null)}
           onPolygonClick={(feat: any) => onCountrySelect(feat?.properties?.name || null)}
 
