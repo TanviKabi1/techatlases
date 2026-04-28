@@ -450,17 +450,34 @@ const Globe3D = ({ data, selectedRegion, selectedCountry, onCountrySelect, autoR
           polygonsData={geoJson.features}
           polygonCapColor={(feat: any) => {
             const name = feat?.properties?.name;
-            if (selectedCountry === name) return themePrimary;
-            if (hoveredCountry === name) return `hsla(${theme?.colors?.primary || "0 0% 100%"} / 0.5)`;
-            if (countMap[name]) return `hsla(${theme?.colors?.primary || "0 0% 100%"} / 0.2)`;
-            return "rgba(255, 255, 255, 0.05)";
+            if (selectedCountry === name && countMap[name]) return themePrimary;
+            if (hoveredCountry === name && countMap[name]) return `hsla(${theme?.colors?.primary || "0 0% 100%"} / 0.5)`;
+            if (countMap[name]) return `hsla(${theme?.colors?.primary || "0 0% 100%"} / 0.15)`;
+            return "rgba(255, 255, 255, 0.02)";
           }}
           polygonSideColor={() => "rgba(15, 23, 42, 0.1)"}
-          polygonStrokeColor={(feat: any) => (selectedCountry === feat?.properties?.name || hoveredCountry === feat?.properties?.name) ? "#ffffff" : "rgba(255,255,255,0.2)"}
+          polygonStrokeColor={(feat: any) => {
+            const name = feat?.properties?.name;
+            if ((selectedCountry === name || hoveredCountry === name) && countMap[name]) return "#ffffff";
+            if (countMap[name]) return "rgba(255,255,255,0.2)";
+            return "rgba(255,255,255,0.05)";
+          }}
           polygonAltitude={0.015}
           polygonsTransitionDuration={300}
-          onPolygonHover={(feat: any) => handleHover(feat?.properties?.name || null)}
-          onPolygonClick={(feat: any) => onCountrySelect(feat?.properties?.name || null)}
+          onPolygonHover={(feat: any) => {
+            const name = feat?.properties?.name;
+            if (name && countMap[name]) {
+              handleHover(name);
+            } else {
+              handleHover(null);
+            }
+          }}
+          onPolygonClick={(feat: any) => {
+            const name = feat?.properties?.name;
+            if (name && countMap[name]) {
+              onCountrySelect(name);
+            }
+          }}
 
           // Towers (Points Data)
           pointsData={towersData}
