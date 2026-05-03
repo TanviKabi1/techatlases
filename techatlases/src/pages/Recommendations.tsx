@@ -18,6 +18,7 @@ import { toast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import LearningRoadmap from "@/components/LearningRoadmap";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import AgentStatusPanel from "@/components/AgentStatusPanel";
 
 interface Recommendation {
   name: string;
@@ -27,11 +28,18 @@ interface Recommendation {
   difficulty: "beginner" | "intermediate" | "advanced";
   timeToLearn: number;
   synergy: string;
+  agent?: string;
+}
+
+interface AgentInsight {
+  agent: string;
+  insight: string;
 }
 
 interface RecommendationResult {
   recommendations: Recommendation[];
   summary: string;
+  agentInsights?: AgentInsight[];
 }
 
 const CAREER_GOALS = [
@@ -73,6 +81,7 @@ const Recommendations = () => {
   const [experienceLevel, setExperienceLevel] = useState("");
   const [result, setResult] = useState<RecommendationResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingStep, setLoadingStep] = useState(0);
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -128,18 +137,30 @@ const Recommendations = () => {
     }
 
     setIsLoading(true);
-    // Don't clear result immediately so the old UI stays until the new one is ready
+    setLoadingStep(0);
     setExpandedIdx(null);
+
+    // Simulated agent progression for UX feel
+    const stepInterval = setInterval(() => {
+      setLoadingStep(prev => (prev < 2 ? prev + 1 : prev));
+    }, 2000);
 
     try {
       const data = await api.post('/services/recommend-skills', { currentStack, careerGoal, experienceLevel });
-      setResult(data as RecommendationResult);
-      toast({ title: "Recommendations generated!", description: `${data.recommendations.length} technologies suggested.` });
+      
+      // Ensure we show the last step for at least a moment
+      setLoadingStep(2);
+      setTimeout(() => {
+        setResult(data as RecommendationResult);
+        toast({ title: "Multi-Agent Analysis Complete", description: `${data.recommendations.length} technologies suggested by our expert panel.` });
+      }, 800);
+      
     } catch (err: any) {
       console.error(err);
       toast({ title: "Error", description: err.message || "Failed to generate recommendations", variant: "destructive" });
     } finally {
-      setIsLoading(false);
+      clearInterval(stepInterval);
+      setTimeout(() => setIsLoading(false), 1000);
     }
   };
   
@@ -256,6 +277,24 @@ const Recommendations = () => {
         {/* Results */}
         {result && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Agent Insights Summary */}
+            {result.agentInsights && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {result.agentInsights.map((insight, idx) => (
+                  <Card key={idx} className="border-primary/10 bg-primary/5 backdrop-blur-sm">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                          {insight.agent}
+                        </Badge>
+                      </div>
+                      <p className="text-sm italic text-muted-foreground">"{insight.insight}"</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+
             {/* Summary */}
             <Card className="border-primary/20 bg-card/80 backdrop-blur">
               <CardContent className="p-5">
@@ -325,6 +364,7 @@ const Recommendations = () => {
                                       <div>
                                         <h3 className="font-semibold text-foreground">{rec.name}</h3>
                                         <div className="flex items-center gap-2 mt-0.5">
+                                          <Badge variant="outline" className="text-[10px] h-4 bg-muted/50">{rec.agent || "Advisor"}</Badge>
                                           <Badge variant="outline" className="text-xs">{rec.category}</Badge>
                                           <span className="text-xs text-muted-foreground flex items-center gap-1">
                                             <Clock className="w-3 h-3" /> ~{rec.timeToLearn} weeks
@@ -395,6 +435,17 @@ const Recommendations = () => {
                 </Card>
               </TabsContent>
             </Tabs>
+          </div>
+        )}
+
+        {/* Loading State with Agent Panel */}
+        {isLoading && (
+          <div className="py-12 animate-in fade-in duration-500">
+            <div className="text-center mb-8">
+              <h2 className="text-xl font-bold mb-2">Expert Consultation in Progress</h2>
+              <p className="text-muted-foreground text-sm">Our multi-agent panel is analyzing your career trajectory...</p>
+            </div>
+            <AgentStatusPanel currentStep={loadingStep} />
           </div>
         )}
 

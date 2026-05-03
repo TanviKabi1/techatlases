@@ -20,7 +20,8 @@ router.post('/recommend-skills', async (req, res) => {
           priority: "high",
           difficulty: "intermediate",
           timeToLearn: 6,
-          synergy: "Excellent with your Python background and ML interests."
+          synergy: "Excellent with your Python background and ML interests.",
+          agent: "Market Analyst"
         },
         {
           name: "LangChain",
@@ -29,68 +30,92 @@ router.post('/recommend-skills', async (req, res) => {
           priority: "high",
           difficulty: "intermediate",
           timeToLearn: 4,
-          synergy: "Perfect for building AI agents on top of your existing Python knowledge."
-        },
-        {
-          name: "MLflow",
-          category: "DevOps",
-          reason: "Standard tool for tracking experiments and managing the ML lifecycle.",
-          priority: "medium",
-          difficulty: "intermediate",
-          timeToLearn: 3,
-          synergy: "Complements your move towards reproducible and scalable AI systems."
-        },
-        {
-          name: "Vector Databases (e.g., Pinecone)",
-          category: "Architecture",
-          reason: "Efficiently store and search embeddings - a must-have for RAG applications.",
-          priority: "medium",
-          difficulty: "beginner",
-          timeToLearn: 2,
-          synergy: "Integrates directly with LangChain and your LLM projects."
+          synergy: "Perfect for building AI agents on top of your existing Python knowledge.",
+          agent: "Tech Architect"
         }
       ],
-      summary: `Transitioning from a ${currentStack[0] || 'Python'} developer to an ${careerGoal} requires moving from general-purpose scripting to mastering specific frameworks like PyTorch and the MLOps ecosystem to deploy models reliably.`
+      summary: `Transitioning to ${careerGoal} requires a multi-perspective strategy. Our agents suggest focusing on PyTorch for technical depth and LangChain for orchestration synergy.`,
+      agentInsights: [
+        { agent: "Market Analyst", insight: "High demand for PyTorch in AI research roles." },
+        { agent: "Tech Architect", insight: "LangChain fits perfectly with your Python background." }
+      ]
     };
     return res.json(mockData);
   }
 
   try {
-    const systemPrompt = `You are a senior technology career advisor. Given a developer's stack, goal, and experience, recommend 5-8 technologies to learn next.
-    Format your response as a JSON object with:
-    {
-      "recommendations": [
-        { "name": "...", "category": "...", "reason": "...", "priority": "high/medium/low", "difficulty": "beginner/intermediate/advanced", "timeToLearn": 4, "synergy": "..." }
-      ],
-      "summary": "..."
-    }`;
+    // 1. Agent: Market Intelligence
+    const marketPrompt = `You are a Market Intelligence Agent. Analyze the current job market demand, salary trends, and future relevance for a developer with this goal: ${careerGoal}. 
+    Provide 2-3 specific technologies or skills that are currently in extremely high demand for this role.
+    Return ONLY a JSON array of strings: ["Tech1", "Tech2", ...]`;
 
-    const userPrompt = `Current Stack: ${currentStack.join(", ")}\nGoal: ${careerGoal}\nLevel: ${experienceLevel}`;
-
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const marketResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
+        messages: [{ role: "user", content: marketPrompt }]
+      }),
+    });
+    const marketData = await marketResponse.json();
+    const marketTechs = JSON.parse(marketData.choices[0].message.content);
+
+    // 2. Agent: Technical Stack Architect
+    const architectPrompt = `You are a Technical Stack Architect. Analyze the synergy between the developer's current stack [${currentStack.join(", ")}] and their goal: ${careerGoal}.
+    Identify 2-3 technologies that would provide the most technical leverage and architectural consistency for them.
+    Return ONLY a JSON array of strings: ["TechA", "TechB", ...]`;
+
+    const architectResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [{ role: "user", content: architectPrompt }]
+      }),
+    });
+    const architectData = await architectResponse.json();
+    const architectTechs = JSON.parse(architectData.choices[0].message.content);
+
+    // 3. Agent: Career Strategist (Orchestrator)
+    const orchestratorPrompt = `You are a Senior Career Strategist. You have received reports from two specialists:
+    - Market Analyst recommends: ${marketTechs.join(", ")}
+    - Tech Architect recommends: ${architectTechs.join(", ")}
+    
+    User Current Stack: ${currentStack.join(", ")}
+    User Goal: ${careerGoal}
+    User Experience: ${experienceLevel}
+    
+    Synthesize these into a final roadmap.
+    Format your response as a JSON object:
+    {
+      "recommendations": [
+        { "name": "...", "category": "...", "reason": "...", "priority": "high/medium/low", "difficulty": "beginner/intermediate/advanced", "timeToLearn": 4, "synergy": "...", "agent": "Market Analyst/Tech Architect" }
+      ],
+      "summary": "...",
+      "agentInsights": [
+        { "agent": "Market Analyst", "insight": "..." },
+        { "agent": "Tech Architect", "insight": "..." }
+      ]
+    }`;
+
+    const orchestratorResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [{ role: "user", content: orchestratorPrompt }],
         response_format: { type: "json_object" }
       }),
     });
 
-    if (!response.ok) throw new Error('AI gateway error');
+    if (!orchestratorResponse.ok) throw new Error('AI gateway error');
 
-    const data = await response.json();
-    const result = JSON.parse(data.choices[0].message.content);
+    const finalData = await orchestratorResponse.json();
+    const result = JSON.parse(finalData.choices[0].message.content);
     res.json(result);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Failed to get AI recommendations' });
+    res.status(500).json({ error: 'Failed to get multi-agent recommendations' });
   }
 });
 
