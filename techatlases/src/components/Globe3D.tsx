@@ -494,10 +494,9 @@ const Globe3D = ({ data, selectedRegion, selectedCountry, onCountrySelect, autoR
           arcsData={arcsData}
           arcStartLat="startLat"
           arcStartLng="startLng"
-          arcStartAltitude="startAlt"
+          arcAltitude="startAlt"
           arcEndLat="endLat"
           arcEndLng="endLng"
-          arcEndAltitude="endAlt"
           arcColor={(arc: any) => (hoveredCountry === arc.startCountry || hoveredCountry === arc.endCountry) ? [themeAccent, themePrimary] : arc.color}
           arcDashLength="dashLength"
           arcDashGap="dashGap"

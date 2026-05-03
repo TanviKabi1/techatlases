@@ -1,3 +1,7 @@
+/**
+ * Global Map Page
+ * Interactive 3D visualization of developer hubs and technology flows.
+ */
 import { lazy, Suspense, useState, useMemo } from "react";
 import { Globe, Users, MapPin, TrendingUp, RotateCw, Filter, Zap } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";

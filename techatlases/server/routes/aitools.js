@@ -3,7 +3,7 @@ import prisma from '../lib/prisma.js';
 
 const router = express.Router();
 
-// Get all AI tools
+
 router.get('/', async (req, res) => {
   try {
     const tools = await prisma.aITool.findMany();
@@ -13,7 +13,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Get AI tool usage (analytics)
+
 router.get('/usage', async (req, res) => {
   try {
     const usage = await prisma.$queryRaw`SELECT * FROM ai_tool_usage_view`;

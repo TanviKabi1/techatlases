@@ -138,8 +138,8 @@ async function main() {
       await prisma.company.create({
         data: {
           name: `${country} ${industries[Math.floor(Math.random() * industries.length)]} ${j+1}`,
-          size: sizes[Math.floor(Math.random() * sizes.length)],
-          industry: industries[Math.floor(Math.random() * industries.length)],
+          size: sizes[Math.floor(Math.random() * sizes.length)] ?? "Medium",
+          industry: industries[Math.floor(Math.random() * industries.length)] ?? "Services",
           regionId: regionId,
         }
       });
@@ -174,23 +174,27 @@ async function main() {
           country: country,
           regionId: regionId,
           yearsCoding: 1 + Math.floor(Math.random() * 20),
-          educationLevel: educationLevels[Math.floor(Math.random() * educationLevels.length)],
+          educationLevel: educationLevels[Math.floor(Math.random() * educationLevels.length)] ?? "Bachelors",
         }
       });
 
       // 7. Work Profile
-      await prisma.workProfile.create({
-        data: {
-          developerId: dev.id,
-          companyId: countryCompanies.length > 0 
-            ? countryCompanies[Math.floor(Math.random() * countryCompanies.length)].id 
-            : dbCompanies[Math.floor(Math.random() * dbCompanies.length)].id,
-          jobRole: roles[Math.floor(Math.random() * roles.length)],
-          employmentType: empTypes[Math.floor(Math.random() * empTypes.length)],
-          salary: 45000 + Math.floor(Math.random() * 140000),
-          remoteWork: remoteTypes[Math.floor(Math.random() * remoteTypes.length)],
-        }
-      });
+      const randomCompany = countryCompanies.length > 0 
+        ? countryCompanies[Math.floor(Math.random() * countryCompanies.length)]
+        : dbCompanies[Math.floor(Math.random() * dbCompanies.length)];
+
+      if (randomCompany) {
+        await prisma.workProfile.create({
+          data: {
+            developerId: dev.id,
+            companyId: randomCompany.id,
+            jobRole: roles[Math.floor(Math.random() * roles.length)] ?? "Fullstack Engineer",
+            employmentType: empTypes[Math.floor(Math.random() * empTypes.length)] ?? "Full-time",
+            salary: 45000 + Math.floor(Math.random() * 140000),
+            remoteWork: remoteTypes[Math.floor(Math.random() * remoteTypes.length)] ?? "Remote",
+          }
+        });
+      }
 
       // 8. Tech Proficiencies (3-7 per dev, weighted by profile)
       const numTechs = 3 + Math.floor(Math.random() * 4);
@@ -229,8 +233,8 @@ async function main() {
           data: {
             developerId: dev.id,
             aiToolId: tool.id,
-            sentiment: sentiments[Math.floor(Math.random() * sentiments.length)],
-            useCase: useCases[Math.floor(Math.random() * useCases.length)],
+            sentiment: sentiments[Math.floor(Math.random() * sentiments.length)] ?? "Neutral",
+            useCase: useCases[Math.floor(Math.random() * useCases.length)] ?? "Automation",
             adoptionScore: 1 + Math.floor(Math.random() * 9),
           }
         });

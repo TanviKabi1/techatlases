@@ -189,7 +189,7 @@ const MyDashboard = () => {
           {/* Header */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
             <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-2">
-              Welcome back, <span className="text-primary text-glow-blue">{user.user_metadata?.display_name || "Developer"}</span>
+              Welcome back, <span className="text-primary text-glow-blue">{(user as any).user_metadata?.display_name || (user as any).display_name || "Developer"}</span>
             </h1>
             <p className="text-muted-foreground">Your personalized developer intelligence hub.</p>
           </motion.div>

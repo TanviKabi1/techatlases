@@ -23,7 +23,11 @@ router.get('/', async (req, res) => {
     });
     res.json(technologies);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch technologies' });
+    console.error(`[Technologies Error]:`, error);
+    res.status(500).json({ 
+      error: 'Failed to fetch technologies', 
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined 
+    });
   }
 });
 

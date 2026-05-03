@@ -8,7 +8,7 @@ async function main() {
   const sqlFile = path.resolve('db/advanced_sql.sql');
   const sql = fs.readFileSync(sqlFile, 'utf8');
 
-  // Simple splitting by semicolon (works for views)
+  
   const statements = sql
     .split(';')
     .map(s => s.trim())

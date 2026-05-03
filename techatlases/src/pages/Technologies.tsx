@@ -1,3 +1,7 @@
+/**
+ * Technology Explorer Page
+ * Provides a comprehensive view of all tracked technologies with comparative analytics.
+ */
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";

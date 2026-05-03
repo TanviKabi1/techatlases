@@ -34,8 +34,11 @@ router.get('/summary', async (req, res) => {
       companies: companyCount,
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Failed to fetch summary' });
+    console.error(`[Developers Summary Error]:`, error);
+    res.status(500).json({ 
+      error: 'Failed to fetch summary', 
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined 
+    });
   }
 });
 

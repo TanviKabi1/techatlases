@@ -10,21 +10,20 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors({
-  origin: true, // Allow all origins in dev
+  origin: true, 
   credentials: true
 }));
 app.use(express.json());
 app.use(morgan('dev'));
 
-// Logger and CSP Fix
+
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
-  // Explicitly set a permissive CSP to override any system/proxy defaults
+  
   res.setHeader("Content-Security-Policy", "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; script-src * 'unsafe-inline' 'unsafe-eval'; style-src * 'unsafe-inline';");
   next();
 });
 
-// Basic health check under /api
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', database: 'mysql' });
 });

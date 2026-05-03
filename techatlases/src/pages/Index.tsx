@@ -1,3 +1,7 @@
+/**
+ * TechAtlas Landing Page
+ * Entry point for users, featuring key platform metrics and call-to-actions.
+ */
 import { lazy, Suspense, useRef } from "react";
 import { motion, useScroll, useTransform, useInView } from "framer-motion";
 import { ArrowRight, Sparkles, Brain, Globe, Rocket, ChevronDown } from "lucide-react";

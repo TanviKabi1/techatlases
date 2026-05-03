@@ -1,10 +1,10 @@
 import express from 'express';
 import prisma from '../lib/prisma.js';
-// fetch is global in Node 18+
+
 
 const router = express.Router();
 
-// AI Recommendation Service
+
 router.post('/recommend-skills', async (req, res) => {
   const { currentStack, careerGoal, experienceLevel } = req.body;
   const LOVABLE_API_KEY = process.env.LOVABLE_API_KEY;

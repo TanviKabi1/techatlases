@@ -54,4 +54,13 @@ This project is built with:
 - shadcn-ui
 - Tailwind CSS
 
+## Lessons Learned
+
+- **Strict Type Safety**: Adhering to `exactOptionalPropertyTypes` in TypeScript requires explicit handling of `null` vs `undefined`. This prevents subtle bugs in database seeders and API interactions where Prisma expects specific optionality.
+- **SPA Deployment on Netlify**: Client-side routing in React (via React Router) needs a `_redirects` file or a `netlify.toml` with `/* /index.html 200` rules to avoid 404 errors when deep links are refreshed.
+- **Interactive 3D Engineering**: Managing high-fidelity 3D components like `react-globe.gl` requires precise prop management. We learned to reconcile custom altitude accessors with standard Three.js geometry constraints to ensure smooth, performant rendering.
+- **Robustness & Error Observability**: Implementing structured logging across Express routes and providing context-aware error messages (differentiation between development and production) is essential for maintaining a high-uptime intelligence dashboard.
+- **Asset Integrity**: External media dependencies (like background videos) should be hosted locally or on reliable CDNs to prevent UI regressions when remote assets become unavailable.
+
+
 
