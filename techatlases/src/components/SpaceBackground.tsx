@@ -96,7 +96,8 @@ const SpaceBackground = () => {
       cancelAnimationFrame(animationId);
       window.removeEventListener("resize", resize);
     };
-  }, [theme, themeColors]);
+  }, [theme, themeColors, starColor]);
+
 
   return (
     <canvas

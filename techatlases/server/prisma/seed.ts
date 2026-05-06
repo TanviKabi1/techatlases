@@ -133,6 +133,8 @@ async function main() {
 
   for (const [country, profile] of Object.entries(countryProfiles)) {
     const regionId = regionMap[profile.region];
+    if (!regionId) continue;
+
     // Create 1-2 companies per country
     for (let j = 0; j < 2; j++) {
       await prisma.company.create({
@@ -140,7 +142,8 @@ async function main() {
           name: `${country} ${industries[Math.floor(Math.random() * industries.length)]} ${j+1}`,
           size: sizes[Math.floor(Math.random() * sizes.length)] ?? "Medium",
           industry: industries[Math.floor(Math.random() * industries.length)] ?? "Services",
-          regionId: regionId,
+          region: { connect: { id: regionId } },
+
         }
       });
     }
@@ -163,6 +166,8 @@ async function main() {
 
   for (const [country, profile] of Object.entries(countryProfiles)) {
     const regionId = regionMap[profile.region];
+    if (!regionId) continue;
+
     const countryCompanies = dbCompanies.filter(c => c.regionId === regionId);
 
     for (let i = 0; i < profile.count; i++) {
@@ -172,7 +177,8 @@ async function main() {
           email: `talent_${country}_${i}@techatlas.io`,
           age: 21 + Math.floor(Math.random() * 30),
           country: country,
-          regionId: regionId,
+          region: { connect: { id: regionId } },
+
           yearsCoding: 1 + Math.floor(Math.random() * 20),
           educationLevel: educationLevels[Math.floor(Math.random() * educationLevels.length)] ?? "Bachelors",
         }
