@@ -24,10 +24,11 @@ model Company {
   size         String?
   industry     String?
   regionId     String?       @map("region_id")
-  region       Region?       @relation(fields: [regionId], references: [id])
   createdAt    DateTime      @default(now()) @map("created_at")
+  region       Region?       @relation(fields: [regionId], references: [id])
   workProfiles WorkProfile[]
 
+  @@index([regionId], map: "company_region_id_fkey")
   @@map("company")
 }
 
@@ -35,7 +36,7 @@ model TechCategory {
   id              String       @id @default(uuid())
   name            String       @unique
   description     String?
-  popularityScore Decimal?     @default(0) @map("popularity_score")
+  popularityScore Decimal?     @default(0.000000000000000000000000000000) @map("popularity_score")
   createdAt       DateTime     @default(now()) @map("created_at")
   technologies    Technology[]
 
@@ -46,10 +47,11 @@ model Technology {
   id            String          @id @default(uuid())
   name          String          @unique
   categoryId    String?         @map("category_id")
-  category      TechCategory?   @relation(fields: [categoryId], references: [id])
   createdAt     DateTime        @default(now()) @map("created_at")
   developerTech DeveloperTech[]
+  category      TechCategory?   @relation(fields: [categoryId], references: [id])
 
+  @@index([categoryId], map: "technology_category_id_fkey")
   @@map("technology")
 }
 
@@ -71,58 +73,62 @@ model Developer {
   age            Int?
   country        String?
   regionId       String?         @map("region_id")
-  region         Region?         @relation(fields: [regionId], references: [id])
   yearsCoding    Int?            @map("years_coding")
   educationLevel String?         @map("education_level")
   createdAt      DateTime        @default(now()) @map("created_at")
-  workProfile    WorkProfile?
+  region         Region?         @relation(fields: [regionId], references: [id])
   developerTech  DeveloperTech[]
   aiUsage        UsesAI[]
+  workProfile    WorkProfile?
 
+  @@index([regionId], map: "developers_region_id_fkey")
   @@map("developers")
 }
 
 model WorkProfile {
-  id             String     @id @default(uuid())
-  developerId    String     @unique @map("developer_id")
-  developer      Developer  @relation(fields: [developerId], references: [id], onDelete: Cascade)
-  companyId      String?    @map("company_id")
-  company        Company?   @relation(fields: [companyId], references: [id])
-  jobRole        String?    @map("job_role")
-  employmentType String?    @map("employment_type")
+  id             String    @id @default(uuid())
+  developerId    String    @unique @map("developer_id")
+  companyId      String?   @map("company_id")
+  jobRole        String?   @map("job_role")
+  employmentType String?   @map("employment_type")
   salary         Decimal?
-  remoteWork     String?    @map("remote_work")
-  createdAt      DateTime   @default(now()) @map("created_at")
+  remoteWork     String?   @map("remote_work")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  company        Company?  @relation(fields: [companyId], references: [id])
+  developer      Developer @relation(fields: [developerId], references: [id], onDelete: Cascade)
 
+  @@index([companyId], map: "work_profile_company_id_fkey")
   @@map("work_profile")
 }
 
 model DeveloperTech {
   id           String     @id @default(uuid())
   developerId  String     @map("developer_id")
-  developer    Developer  @relation(fields: [developerId], references: [id], onDelete: Cascade)
   technologyId String     @map("technology_id")
-  technology   Technology @relation(fields: [technologyId], references: [id], onDelete: Cascade)
   proficiency  Int?       @default(1)
   yearsUsed    Int?       @default(0) @map("years_used")
   createdAt    DateTime   @default(now()) @map("created_at")
+  developer    Developer  @relation(fields: [developerId], references: [id], onDelete: Cascade)
+  technology   Technology @relation(fields: [technologyId], references: [id], onDelete: Cascade)
 
   @@unique([developerId, technologyId])
+  @@index([technologyId], map: "developers_tech_technology_id_fkey")
   @@map("developers_tech")
 }
 
 model UsesAI {
   id            String    @id @default(uuid())
   developerId   String    @map("developer_id")
-  developer     Developer @relation(fields: [developerId], references: [id], onDelete: Cascade)
   aiToolId      String    @map("ai_tool_id")
-  aiTool        AITool    @relation(fields: [aiToolId], references: [id], onDelete: Cascade)
   sentiment     String?
   useCase       String?   @map("use_case")
   adoptionScore Int?      @default(0) @map("adoption_score")
   createdAt     DateTime  @default(now()) @map("created_at")
+  aiTool        AITool    @relation(fields: [aiToolId], references: [id], onDelete: Cascade)
+  developer     Developer @relation(fields: [developerId], references: [id], onDelete: Cascade)
 
   @@unique([developerId, aiToolId])
+  @@index([aiToolId], map: "uses_ai_ai_tool_id_fkey")
   @@map("uses_ai")
 }
 
@@ -137,15 +143,15 @@ model RawSurveyData {
 }
 
 model User {
-  id        String          @id @default(uuid())
-  email     String          @unique
-  password  String
-  roles     UserRole[]
-  profile   Profile?
-  savedTech SavedTechnology[]
+  id          String            @id @default(uuid())
+  email       String            @unique
+  password    String
+  createdAt   DateTime          @default(now()) @map("created_at")
+  profile     Profile?
+  savedTech   SavedTechnology[]
   savedTrends SavedTrend[]
-  roadmap   UserRoadmap[]
-  createdAt DateTime        @default(now()) @map("created_at")
+  roadmap     UserRoadmap[]
+  roles       UserRole[]
 
   @@map("users")
 }
@@ -153,9 +159,9 @@ model User {
 model UserRole {
   id        String   @id @default(uuid())
   userId    String   @map("user_id")
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role      String   @default("user") // 'admin', 'moderator', 'user'
+  role      String   @default("user")
   createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, role])
   @@map("user_roles")
@@ -163,10 +169,10 @@ model UserRole {
 
 model Profile {
   id          String   @id @map("id")
-  user        User     @relation(fields: [id], references: [id], onDelete: Cascade)
   email       String?
   displayName String?  @map("display_name")
   createdAt   DateTime @default(now()) @map("created_at")
+  user        User     @relation(fields: [id], references: [id], onDelete: Cascade)
 
   @@map("profiles")
 }
@@ -181,35 +187,38 @@ model NewspaperMessage {
 }
 
 model SavedTechnology {
-  id             String     @id @default(uuid())
-  userId         String     @map("user_id")
-  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  technologyName String     @map("technology_name")
-  createdAt      DateTime   @default(now()) @map("created_at")
+  id             String   @id @default(uuid())
+  userId         String   @map("user_id")
+  technologyName String   @map("technology_name")
+  createdAt      DateTime @default(now()) @map("created_at")
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId], map: "saved_technologies_user_id_fkey")
   @@map("saved_technologies")
 }
 
 model SavedTrend {
-  id            String     @id @default(uuid())
-  userId        String     @map("user_id")
-  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  trendName     String     @map("trend_name")
-  trendCategory String?    @map("trend_category")
-  createdAt     DateTime   @default(now()) @map("created_at")
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  trendName     String   @map("trend_name")
+  trendCategory String?  @map("trend_category")
+  createdAt     DateTime @default(now()) @map("created_at")
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId], map: "saved_trends_user_id_fkey")
   @@map("saved_trends")
 }
 
 model UserRoadmap {
-  id             String     @id @default(uuid())
-  userId         String     @map("user_id")
-  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  technologyName String     @map("technology_name")
-  status         String     @default("planned") // 'planned', 'in-progress', 'completed'
-  progress       Int?       @default(0)
-  priority       Int?       @default(0)
-  createdAt      DateTime   @default(now()) @map("created_at")
+  id             String   @id @default(uuid())
+  userId         String   @map("user_id")
+  technologyName String   @map("technology_name")
+  status         String   @default("planned")
+  createdAt      DateTime @default(now()) @map("created_at")
+  progress       Int?     @default(0)
+  priority       Int?     @default(0)
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId], map: "user_roadmap_user_id_fkey")
   @@map("user_roadmap")
 }
