@@ -7,13 +7,15 @@ export async function main() {
 
   try {
     // 0. Cleanup existing data (order matters for foreign keys)
-    await prisma.developerTechnology.deleteMany({});
-    await prisma.developerAITool.deleteMany({});
+    await prisma.developerTech.deleteMany({});
+    await prisma.usesAI.deleteMany({});
+    await prisma.workProfile.deleteMany({});
     await prisma.developer.deleteMany({});
     await prisma.aITool.deleteMany({});
     await prisma.technology.deleteMany({});
     await prisma.techCategory.deleteMany({});
     await prisma.region.deleteMany({});
+    await prisma.userRole.deleteMany({});
     await prisma.user.deleteMany({});
 
     console.log('Cleanup complete.');
@@ -22,9 +24,10 @@ export async function main() {
     const admin = await prisma.user.create({
       data: {
         email: 'admin@techatlas.io',
-        password: 'admin123', // In a real app, use bcrypt here
-        role: 'ADMIN',
-        name: 'System Admin'
+        password: 'admin123', 
+        roles: {
+          create: [{ role: 'ADMIN' }]
+        }
       }
     });
     console.log('Admin user created.');
@@ -59,18 +62,17 @@ export async function main() {
     }
     console.log('Tech data created.');
 
-    // 4. Create sample developers (First 10 for quick seed)
+    // 4. Create sample developers (First 20 for quick seed)
     for (let i = 1; i <= 20; i++) {
       await prisma.developer.create({
         data: {
           name: `Developer ${i}`,
           email: `dev${i}@example.com`,
           country: 'India',
-          region_id: regions[i % regions.length].id,
+          regionId: regions[i % regions.length].id,
           age: 20 + i,
-          years_coding: i,
-          education_level: "Bachelor's Degree",
-          is_remote: true
+          yearsCoding: i,
+          educationLevel: "Bachelor's Degree",
         }
       });
     }
