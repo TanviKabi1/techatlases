@@ -65,7 +65,7 @@ npm run dev
 
 The application will be available at `http://localhost:8080`.
 
-### Default Admin Credentials (for Collaborators)
+### Dummy Admin Credentials (for Collaborators)
 - **Email**: `admin@techatlas.io`
 - **Password**: `admin123`
 
