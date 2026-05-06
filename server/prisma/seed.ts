@@ -6,6 +6,15 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('Seeding database...');
 
+  // 0. Cleanup existing data (order matters for foreign keys)
+  console.log('Cleaning up old data...');
+  await prisma.usesAI.deleteMany();
+  await prisma.developerTech.deleteMany();
+  await prisma.workProfile.deleteMany();
+  await prisma.developer.deleteMany();
+  await prisma.company.deleteMany();
+  console.log('Cleanup complete.');
+
   // 1. Seed Regions
   const regions = [
     { name: 'North America', continent: 'Americas' },
@@ -56,13 +65,13 @@ async function main() {
 
   // 3. Seed Technologies
   const techMap: Record<string, string[]> = {
-    'Frontend': ['React', 'Next.js', 'Vue.js', 'TypeScript', 'Tailwind CSS'],
-    'Backend': ['Node.js', 'Python', 'Go', 'PostgreSQL', 'Rust'],
-    'Data Science': ['PyTorch', 'Scikit-learn', 'Pandas'],
-    'DevOps': ['Docker', 'Kubernetes'],
-    'Mobile': ['React Native', 'Flutter'],
-    'AI & LLM': ['OpenAI API', 'LangChain'],
-    'Cloud Computing': ['AWS']
+    'Frontend': ['React', 'Next.js', 'Vue.js', 'TypeScript', 'Tailwind CSS', 'Angular', 'Svelte'],
+    'Backend': ['Node.js', 'Python', 'Go', 'PostgreSQL', 'Rust', 'Ruby on Rails', 'Java Spring'],
+    'Data Science': ['PyTorch', 'Scikit-learn', 'Pandas', 'TensorFlow', 'R'],
+    'DevOps': ['Docker', 'Kubernetes', 'Terraform', 'GitHub Actions'],
+    'Mobile': ['React Native', 'Flutter', 'Swift', 'Kotlin'],
+    'AI & LLM': ['OpenAI API', 'LangChain', 'LlamaIndex', 'Hugging Face'],
+    'Cloud Computing': ['AWS', 'Google Cloud', 'Azure', 'Vercel']
   };
 
   for (const [catName, techs] of Object.entries(techMap)) {
@@ -86,7 +95,7 @@ async function main() {
     { name: 'Cursor', description: 'AI-first code editor integrated with LLMs', category: 'Development' },
     { name: 'Midjourney', description: 'High-quality AI image generation', category: 'Design' },
     { name: 'v0.dev', description: 'Generative UI system for React/Tailwind', category: 'Frontend' },
-    { name: 'Replit Ghostwriter', description: 'AI assistant for local and code coding', category: 'Development' },
+    { name: 'Replit Ghostwriter', description: 'AI assistant for local and cloud coding', category: 'Development' },
     { name: 'Tabnine', description: 'Private AI code completion engine', category: 'Development' },
     { name: 'Phind', description: 'Search engine for developers powered by AI', category: 'Productivity' },
     { name: 'Perplexity', description: 'Conversational search and discovery', category: 'Productivity' }
@@ -100,93 +109,143 @@ async function main() {
     });
   }
 
+  // Define Country Profiles for better distribution
+  const countryProfiles: Record<string, { region: string, prefTech: string[], prefAI: string[], count: number }> = {
+    'USA': { region: 'North America', prefTech: ['Python', 'PyTorch', 'AWS', 'OpenAI API'], prefAI: ['ChatGPT', 'GitHub Copilot'], count: 40 },
+    'India': { region: 'South Asia', prefTech: ['React', 'Node.js', 'Flutter', 'TypeScript'], prefAI: ['GitHub Copilot', 'v0.dev'], count: 50 },
+    'Germany': { region: 'Western Europe', prefTech: ['Rust', 'Go', 'Kubernetes', 'Docker'], prefAI: ['Claude 3', 'Tabnine'], count: 25 },
+    'UK': { region: 'Western Europe', prefTech: ['TypeScript', 'Next.js', 'Node.js', 'AWS'], prefAI: ['GitHub Copilot', 'Phind'], count: 20 },
+    'Japan': { region: 'East Asia', prefTech: ['Vue.js', 'TypeScript', 'PostgreSQL'], prefAI: ['Midjourney', 'Cursor'], count: 15 },
+    'Brazil': { region: 'Latin America', prefTech: ['React Native', 'Tailwind CSS', 'Node.js'], prefAI: ['ChatGPT', 'Claude 3'], count: 15 },
+    'Nigeria': { region: 'Africa', prefTech: ['React', 'Node.js', 'Next.js'], prefAI: ['ChatGPT', 'Perplexity'], count: 15 },
+    'Canada': { region: 'North America', prefTech: ['Python', 'Pandas', 'Scikit-learn'], prefAI: ['OpenAI API', 'Claude 3'], count: 15 },
+    'Australia': { region: 'Oceania', prefTech: ['React', 'Next.js', 'AWS'], prefAI: ['GitHub Copilot', 'Phind'], count: 10 },
+    'France': { region: 'Western Europe', prefTech: ['Vue.js', 'Node.js', 'Docker'], prefAI: ['Claude 3', 'Phind'], count: 10 },
+  };
+
   // 5. Seed Companies
   const industries = ['Finance', 'Education', 'Healthcare', 'E-commerce', 'Robotics', 'Deep Tech', 'Services', 'SaaS'];
   const sizes = ['Startup', 'Medium', 'Large', 'Enterprise'];
-  const companyNames = ['Quantum Leap', 'EcoSync', 'CyberDyne', 'IndiTech', 'Nexus Systems', 'Alpha Stream', 'Beta Labs', 'Gamma Corp'];
-
-  const dbRegions = await prisma.region.findMany();
   
-  for (const name of companyNames) {
-    await prisma.company.create({
-      data: {
-        name,
-        size: sizes[Math.floor(Math.random() * sizes.length)],
-        industry: industries[Math.floor(Math.random() * industries.length)],
-        regionId: dbRegions[Math.floor(Math.random() * dbRegions.length)].id,
-      }
-    });
+  console.log('Generating companies...');
+  const dbRegions = await prisma.region.findMany();
+  const regionMap = Object.fromEntries(dbRegions.map(r => [r.name, r.id]));
+
+  for (const [country, profile] of Object.entries(countryProfiles)) {
+    const regionId = regionMap[profile.region];
+    if (!regionId) continue;
+
+    // Create 1-2 companies per country
+    for (let j = 0; j < 2; j++) {
+      await prisma.company.create({
+        data: {
+          name: `${country} ${industries[Math.floor(Math.random() * industries.length)]} ${j+1}`,
+          size: sizes[Math.floor(Math.random() * sizes.length)] ?? "Medium",
+          industry: industries[Math.floor(Math.random() * industries.length)] ?? "Services",
+          region: { connect: { id: regionId } },
+
+        }
+      });
+    }
   }
 
-  // 6. Seed Developers (200 records)
-  const countries = ['USA', 'Germany', 'India', 'Japan', 'Brazil', 'Nigeria', 'UK', 'Canada'];
+  // 6. Seed Developers
   const educationLevels = ['Bachelors', 'Masters', 'PhD', 'Associate', 'Self-taught'];
+  const roles = ['Frontend Developer', 'Backend Engineer', 'Fullstack Engineer', 'Machine Learning Engineer', 'SRE/DevOps', 'Solutions Architect', 'Product Manager'];
+  const empTypes = ['Full-time', 'Contract', 'Freelance'];
+  const remoteTypes = ['Remote', 'On-site', 'Hybrid'];
+  const sentiments = ['Positive', 'Neutral', 'Negative'];
+  const useCases = ['Production Coding', 'Learning/Upskilling', 'Automation'];
 
-  console.log('Generating 200 developers...');
   const dbCompanies = await prisma.company.findMany();
   const dbTechs = await prisma.technology.findMany();
   const dbAiTools = await prisma.aITool.findMany();
 
-  for (let i = 1; i <= 200; i++) {
-    const dev = await prisma.developer.create({
-      data: {
-        name: `Talent_${i}`,
-        email: `talent_${i}@techatlas.io`,
-        age: 21 + (i % 35),
-        country: countries[i % countries.length],
-        regionId: dbRegions[Math.floor(Math.random() * dbRegions.length)].id,
-        yearsCoding: 1 + (i % 22),
-        educationLevel: educationLevels[i % educationLevels.length],
-      }
-    });
+  console.log('Generating developers with country-specific profiles...');
+  let totalDevsCreated = 0;
 
-    // 7. Seed Work Profile
-    const roles = ['Frontend Developer', 'Backend Engineer', 'Fullstack Engineer', 'Machine Learning Engineer', 'SRE/DevOps', 'Solutions Architect', 'Product Manager'];
-    const empTypes = ['Full-time', 'Contract', 'Freelance'];
-    const remoteTypes = ['Remote', 'On-site', 'Hybrid'];
+  for (const [country, profile] of Object.entries(countryProfiles)) {
+    const regionId = regionMap[profile.region];
+    if (!regionId) continue;
 
-    await prisma.workProfile.create({
-      data: {
-        developerId: dev.id,
-        companyId: dbCompanies[Math.floor(Math.random() * dbCompanies.length)].id,
-        jobRole: roles[Math.floor(Math.random() * roles.length)],
-        employmentType: empTypes[Math.floor(Math.random() * empTypes.length)],
-        salary: 45000 + Math.floor(Math.random() * 140000),
-        remoteWork: remoteTypes[Math.floor(Math.random() * remoteTypes.length)],
-      }
-    });
+    const countryCompanies = dbCompanies.filter(c => c.regionId === regionId);
 
-    // 8. Tech Proficiencies (3-7 per dev)
-    const numTechs = 3 + Math.floor(Math.random() * 4);
-    const selectedTechs = dbTechs.sort(() => 0.5 - Math.random()).slice(0, numTechs);
-
-    for (const tech of selectedTechs) {
-      await prisma.developerTech.create({
+    for (let i = 0; i < profile.count; i++) {
+      const dev = await prisma.developer.create({
         data: {
-          developerId: dev.id,
-          technologyId: tech.id,
-          proficiency: 1 + Math.floor(Math.random() * 4),
-          yearsUsed: 1 + Math.floor(Math.random() * 12),
+          name: `Talent_${country}_${i}`,
+          email: `talent_${country}_${i}@techatlas.io`,
+          age: 21 + Math.floor(Math.random() * 30),
+          country: country,
+          region: { connect: { id: regionId } },
+
+          yearsCoding: 1 + Math.floor(Math.random() * 20),
+          educationLevel: educationLevels[Math.floor(Math.random() * educationLevels.length)] ?? "Bachelors",
         }
       });
-    }
 
-    // 9. AI Tool Usage (2-4 per dev)
-    const numAi = 2 + Math.floor(Math.random() * 2);
-    const selectedAi = dbAiTools.sort(() => 0.5 - Math.random()).slice(0, numAi);
-    const sentiments = ['Positive', 'Neutral', 'Negative'];
-    const useCases = ['Production Coding', 'Learning/Upskilling', 'Automation'];
+      // 7. Work Profile
+      const randomCompany = countryCompanies.length > 0 
+        ? countryCompanies[Math.floor(Math.random() * countryCompanies.length)]
+        : dbCompanies[Math.floor(Math.random() * dbCompanies.length)];
 
-    for (const tool of selectedAi) {
-      await prisma.usesAI.create({
-        data: {
-          developerId: dev.id,
-          aiToolId: tool.id,
-          sentiment: sentiments[Math.floor(Math.random() * sentiments.length)],
-          useCase: useCases[Math.floor(Math.random() * useCases.length)],
-          adoptionScore: 1 + Math.floor(Math.random() * 9),
-        }
-      });
+      if (randomCompany) {
+        await prisma.workProfile.create({
+          data: {
+            developerId: dev.id,
+            companyId: randomCompany.id,
+            jobRole: roles[Math.floor(Math.random() * roles.length)] ?? "Fullstack Engineer",
+            employmentType: empTypes[Math.floor(Math.random() * empTypes.length)] ?? "Full-time",
+            salary: 45000 + Math.floor(Math.random() * 140000),
+            remoteWork: remoteTypes[Math.floor(Math.random() * remoteTypes.length)] ?? "Remote",
+          }
+        });
+      }
+
+      // 8. Tech Proficiencies (3-7 per dev, weighted by profile)
+      const numTechs = 3 + Math.floor(Math.random() * 4);
+      const countryTechs = dbTechs.filter(t => profile.prefTech.includes(t.name));
+      const otherTechs = dbTechs.filter(t => !profile.prefTech.includes(t.name));
+      
+      // Pick 2-3 from preferred, rest from others
+      const selectedTechs = [
+        ...countryTechs.sort(() => 0.5 - Math.random()).slice(0, 2 + Math.floor(Math.random() * 2)),
+        ...otherTechs.sort(() => 0.5 - Math.random()).slice(0, numTechs - 2)
+      ].slice(0, numTechs);
+
+      for (const tech of selectedTechs) {
+        await prisma.developerTech.create({
+          data: {
+            developerId: dev.id,
+            technologyId: tech.id,
+            proficiency: 1 + Math.floor(Math.random() * 4),
+            yearsUsed: 1 + Math.floor(Math.random() * 10),
+          }
+        });
+      }
+
+      // 9. AI Tool Usage (2-4 per dev, weighted by profile)
+      const numAi = 2 + Math.floor(Math.random() * 2);
+      const countryAi = dbAiTools.filter(t => profile.prefAI.includes(t.name));
+      const otherAi = dbAiTools.filter(t => !profile.prefAI.includes(t.name));
+
+      const selectedAi = [
+        ...countryAi.sort(() => 0.5 - Math.random()).slice(0, 2),
+        ...otherAi.sort(() => 0.5 - Math.random()).slice(0, numAi - 2)
+      ].slice(0, numAi);
+
+      for (const tool of selectedAi) {
+        await prisma.usesAI.create({
+          data: {
+            developerId: dev.id,
+            aiToolId: tool.id,
+            sentiment: sentiments[Math.floor(Math.random() * sentiments.length)] ?? "Neutral",
+            useCase: useCases[Math.floor(Math.random() * useCases.length)] ?? "Automation",
+            adoptionScore: 1 + Math.floor(Math.random() * 9),
+          }
+        });
+      }
+      totalDevsCreated++;
     }
   }
 
@@ -212,7 +271,7 @@ async function main() {
     }
   });
 
-  console.log('Seeding completed successfully.');
+  console.log(`Seeding completed successfully. Created ${totalDevsCreated} developers.`);
 }
 
 main()
