@@ -55,9 +55,28 @@ const Admin = () => {
     <div className="min-h-screen bg-background cyber-grid">
       <Navbar />
       <div className="pt-20 px-4 max-w-7xl mx-auto pb-12">
-        <div className="flex items-center gap-3 mb-8">
-          <Shield className="w-8 h-8 text-primary" />
-          <h1 className="text-3xl font-bold text-foreground">Admin Panel</h1>
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            <Shield className="w-8 h-8 text-primary" />
+            <h1 className="text-3xl font-bold text-foreground">Admin Panel</h1>
+          </div>
+          <button 
+            onClick={async () => {
+              if (confirm("Populate database with 200+ sample developers? This will reset existing data.")) {
+                try {
+                  await api.post('/services/seed', {});
+                  alert("Database seeded successfully!");
+                  window.location.reload();
+                } catch (err) {
+                  alert("Seeding failed: " + err.message);
+                }
+              }
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/50 rounded-lg text-primary hover:bg-primary/20 transition-colors text-sm font-medium"
+          >
+            <Database className="w-4 h-4" />
+            Seed Database
+          </button>
         </div>
 
         {/* Stats */}
