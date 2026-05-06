@@ -131,7 +131,18 @@ router.post('/process-csv', async (req, res) => {
   }
 });
 
-// Database Seeding Service
+// Database Seeding Service - TEMPORARILY GET for easy first-time setup
+router.get('/seed', async (req, res) => {
+  try {
+    const { main } = await import('../prisma/seed.ts');
+    await main();
+    res.send('<h1>Success!</h1><p>Database seeded successfully. You can now <a href="/login">login</a> with admin@techatlas.io / admin123</p>');
+  } catch (error) {
+    console.error('Seed error:', error);
+    res.status(500).send('<h1>Seed Failed</h1><p>' + error.message + '</p>');
+  }
+});
+
 router.post('/seed', async (req, res) => {
   try {
     const { main } = await import('../prisma/seed.ts');
