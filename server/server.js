@@ -24,8 +24,19 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', database: 'mysql' });
+app.get('/api/health-check', async (req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ status: 'ok', database: 'connected', environment: process.env.NODE_ENV });
+  } catch (err) {
+    res.status(500).json({ 
+      status: 'error', 
+      database: 'disconnected', 
+      error: err.message,
+      code: err.code,
+      meta: err.meta
+    });
+  }
 });
 
 // Mount routes
