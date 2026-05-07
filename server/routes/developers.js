@@ -34,8 +34,12 @@ router.get('/summary', async (req, res) => {
       companies: companyCount,
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Failed to fetch summary' });
+    console.error("Summary Fetch Error:", error);
+    res.status(500).json({ 
+      error: 'Failed to fetch summary',
+      details: error.message,
+      code: error.code
+    });
   }
 });
 

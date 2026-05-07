@@ -40,7 +40,15 @@ router.post('/login', async (req, res) => {
       where: { email },
       include: { roles: true, profile: true }
     });
-    if (!user || !(await bcrypt.compare(password, user.password))) {
+    
+    if (!user) {
+      console.log(`[Login Sub] User not found: ${email}`);
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      console.log(`[Login Sub] Password mismatch for: ${email}`);
       return res.status(401).json({ error: 'Invalid credentials' });
     }
     const token = jwt.sign(
@@ -50,8 +58,12 @@ router.post('/login', async (req, res) => {
     );
     res.json({ token, user: { id: user.id, email: user.email, roles: user.roles, profile: user.profile } });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error("Login Error:", error);
+    res.status(500).json({ 
+      error: 'Internal server error', 
+      details: error.message,
+      code: error.code
+    });
   }
 });
 
